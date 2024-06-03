@@ -11,12 +11,35 @@ client::~client()
 {
 }
 
+void client::setNickname(const std::string n)
+{
+	nickname = n;
+}
+
+
 std::string client::getNickname() const
 {
 	return nickname;
 }
 
-void client::setNickname(const std::string n)
+void client::setUsername(const std::string n)
 {
-	nickname = n;
+	username = n;
 }
+
+
+std::string client::getUsername() const
+{
+	return username;
+}
+
+void client::setFullname(const std::string n)
+{
+	fullname = n;
+}
+
+std::string client::getFullname() const
+{
+	return nickname;
+}
+

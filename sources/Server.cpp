@@ -92,7 +92,6 @@ std::vector<std::string> split_line(std::string line)
 	word = std::strtok(const_cast<char*>(line.c_str()), " 	");
 	while (word)
 	{
-		std::cout << word << std::endl;
 		res.push_back(word);
 		word = std::strtok(NULL, " 	");
 	}
@@ -142,13 +141,26 @@ void server::check_nickname(std::vector<std::string>& command, int fd){
 
 void server::check_username(std::vector<std::string>& command, int fd){
 	(void)fd;
-	if (command.size() != 4){
+	if (command.size() < 5){
 		std::cout << RED << "Number of args isn't right, Please use this syntax : " << RESET << std::endl;
 		std::cout << "\t USER <username> 0 * :<realname>" << std::endl;
 	}
-	else
-	{
+	else{
+		if(command[2].compare("0") || command[3].compare("*"))
+			std::cout << UNDERLINE << "Please set the second parameter with <0> and the third with <*>" << RESET << std::endl;
+		else{
+			// clients[fd].setUsername(command[1]);
+			// clients[fd].authentication[2] = true;
+		}
+		// size_t pos = command[4].find(":");
+		// if (pos == std::string::npos)
+		// 	std::cout << RED << "Didn't find :" << RESET << std::endl;
+		// else{
+		// 	clients[fd].setFullname(command[4].substr(pos));
+		// 	std::cout << GREEN << "Username added successfully" << RESET << std::endl;
+		// }
 	}
+
 }
 
 void server::authenticate_cmds(std::string line, int fd)
@@ -162,7 +174,7 @@ void server::authenticate_cmds(std::string line, int fd)
 		std::cout << UNDERLINE << "Please enter the password first" << RESET << std::endl;
 	if (!command[0].compare("USER") && clients[fd].authentication[0] && clients[fd].authentication[1])
 		check_username(command, fd);
-	if (!command[0].compare("USER") && (!clients[fd].authentication[0] || !clients[fd].authentication[1]))
+	else if (!command[0].compare("USER") && (!clients[fd].authentication[0] || !clients[fd].authentication[1]))
 		std::cout << UNDERLINE << "You need first to set <PASS> and <NICK>" << RESET << std::endl;
 }
 
