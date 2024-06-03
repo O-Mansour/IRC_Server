@@ -1,4 +1,4 @@
-#include "client.hpp"
+#include "../includes/Client.hpp"
 #include <string>
 
 client::client(int nb, std::string ip_addr) : fd(nb), ip(ip_addr)
