@@ -96,7 +96,6 @@ std::vector<std::string> split_line(std::string line)
 		res.push_back(word);
 		word = std::strtok(NULL, " 	");
 	}
-	// res.push_back(line);
 	return res;
 }
 
@@ -121,6 +120,8 @@ void server::check_password(std::vector<std::string> &command, client& clt){
 void server::check_nickname(std::vector<std::string>& command, client& clt){
 	if (command.size() != 2)
 		std::cout << RED << "number of args isn't right" << RESET << std::endl;
+	else if (clt.authentication[1])
+		std::cout << YELLOW << "You already assigned a nickname" << RESET << std::endl;
 	else {
 		bool nickAvailable = true;
 		for (size_t i = 0; i < clients.size(); i++) {
@@ -141,28 +142,49 @@ void server::check_nickname(std::vector<std::string>& command, client& clt){
 }
 
 void server::check_username(std::vector<std::string>& command, client& clt) {
-	if (command.size() != 5){
+	if (command.size() < 5){
 		std::cout << RED << "Number of args isn't right, Please use this syntax : " << RESET << std::endl;
 		std::cout << "\t USER <username> 0 * :<realname>" << std::endl;
 	}
-	else{
-		if(command[2].compare("0") || command[3].compare("*"))
-			std::cout << UNDERLINE << "Please set the second parameter with <0> and the third with <*>" << RESET << std::endl;
-		else{
-			clt.setUsername(command[1]);
-			clt.setFullname(command[4]);
-			clt.authentication[2] = true;
-            write(clt.getFd(), "You can use all commands\n", 26);
-		}
-		// size_t pos = command[4].find(":");
-		// if (pos == std::string::npos)
-		// 	std::cout << RED << "Didn't find :" << RESET << std::endl;
-		// else{
-		// 	clients[fd].setFullname(command[4].substr(pos));
-		// 	std::cout << GREEN << "Username added successfully" << RESET << std::endl;
-		// }
+	else if (clt.authentication[2])
+		std::cout << YELLOW << "You already assigned a username" << RESET << std::endl;
+	else if(command[2].compare("0") || command[3].compare("*"))
+		std::cout << UNDERLINE << "Please set the second parameter with <0> and the third with <*>" << RESET << std::endl;
+	else if (command[4].at(0) != ':'){
+		std::cout << RED << "Please use this syntax : " << RESET << std::endl;
+		std::cout << "\t USER <username> 0 * :<realname>" << std::endl;
+		return ;
 	}
-
+	else{
+		if (command.size() == 5){
+			clt.setUsername(command[1]);
+			if (command[4].size() < 2){
+				std::cout << RED << "Please use this syntax : " << RESET << std::endl;
+				std::cout << "\t USER <username> 0 * :<realname>" << std::endl;
+				return ;
+			}
+			clt.setFullname(command[4].substr(1));
+			clt.authentication[2] = true;
+		 	std::cout << GREEN << "Username added successfully" << RESET << std::endl;
+		}
+		else{
+				clt.setUsername(command[1]);
+				if (command[4].size() < 2){
+					std::cout << RED << "Please use this syntax : " << RESET << std::endl;
+					std::cout << "\t USER <username> 0 * :<realname>" << std::endl;
+					return ;
+				}
+				std::string buf = command[4].substr(1);
+				for (size_t i = 5; i < command.size();i++){
+				if (i + 1)
+					buf.append(" ");
+				buf.append(command[i]);
+				}
+				clt.setFullname(buf);
+				clt.authentication[2] = true;
+		 		std::cout << GREEN << "Username added successfully" << RESET << std::endl;
+			}
+	}
 }
 
 void server::authenticate_cmds(std::string line, client& clt)
@@ -211,6 +233,8 @@ void server::channel_cmds(std::string line, client& clt)
 {
 	std::vector<std::string> command = split_line(line);
 	if (!command[0].compare("/JOIN"))
+		do_join(command, clt);
+	else if (!command[0].compare("/JOIN"))
 		do_join(command, clt);
 }
 
