@@ -21,7 +21,7 @@ server::server(int p, std::string pass) : port(p), password(pass)
 		throw std::runtime_error("bind() failed");
 	if (listen(this->s_socket, SOMAXCONN) == NOT_VALID)
 		throw std::runtime_error("listen() failed");
-	// start poll() 
+	// setup for poll()
 	struct pollfd to_poll;
 	to_poll.fd = this->s_socket;
 	to_poll.events = POLLIN;
@@ -39,30 +39,30 @@ void server::CreateClient(){
 	struct pollfd clt_fd;
 	clt_fd.fd = nb;
 	clt_fd.events = POLLIN;
-	client clt(nb, inet_ntoa(clt_addr.sin_addr));
-	clients.push_back(clt);
 	poll_fds.push_back(clt_fd);
+	client clt(nb);
+	clients.push_back(clt);
 	print_time();
 	std::cout << YELLOW << "New client connected with fd : " << nb << RESET << std::endl;
 }
 
-void server::HandleData(int i){
+void server::HandleData(client& clt)
+{
 	char buf[BUFFER_SIZE];
-	ssize_t rn = read(i, buf, BUFFER_SIZE - 1);
+	ssize_t rn = read(clt.getFd(), buf, BUFFER_SIZE - 1);
 	if (rn < 0)
 		throw std::runtime_error("read() failed");
 	else if (rn == 0)
 	{
 		print_time();
-		std::cout << RED << "Client with fd : " << i << " disconnected" << RESET << std::endl;
-		close(i);
+		std::cout << RED << "Client with fd : " << clt.getFd() << " disconnected" << RESET << std::endl;
+		close(clt.getFd());
 	}
 	else {
 		buf[rn] = '\0';
-		read_buffer[i].append(buf);
-		execute_cmds(i);
+		read_buffer[clt.getFd()].append(buf);
+		execute_cmds(clt);
 	}
-
 }
 
 void server::startWaiting()
@@ -78,12 +78,13 @@ void server::startWaiting()
 				if (poll_fds[i].fd == s_socket)
 					this->CreateClient();
 				else
-					this->HandleData(poll_fds[i].fd);
+					this->HandleData(clients[i - 1]);
 			}
 		}
 	}
 }
 
+// needs more tests
 std::vector<std::string> split_line(std::string line)
 {
 	std::vector<std::string> res;
@@ -99,17 +100,17 @@ std::vector<std::string> split_line(std::string line)
 	return res;
 }
 
-void server::check_password(std::vector<std::string> &command, int fd){
+void server::check_password(std::vector<std::string> &command, client& clt){
 	if (command.size() != 2)
 		std::cout << RED << "number of args isn't right" << RESET << std::endl;
 	else {
-		if(clients[fd].authentication[0])
+		if(clt.authentication[0])
 			std::cout << RED << "You entered the password already" << RESET<< std::endl;
 		else {
 			if (!command[1].compare(password))
 			{
 				std::cout << GREEN << "Correct password, Welcome" << RESET << std::endl;
-				clients[fd].authentication[0] = true;
+				clt.authentication[0] = true;
 			}
 			else
 				std::cout << RED << "Incorrect password" << RESET << std::endl;
@@ -117,7 +118,7 @@ void server::check_password(std::vector<std::string> &command, int fd){
 	}
 }
 
-void server::check_nickname(std::vector<std::string>& command, int fd){
+void server::check_nickname(std::vector<std::string>& command, client& clt){
 	if (command.size() != 2)
 		std::cout << RED << "number of args isn't right" << RESET << std::endl;
 	else {
@@ -132,16 +133,15 @@ void server::check_nickname(std::vector<std::string>& command, int fd){
 		}
 		if (nickAvailable)
 		{
-			clients[fd].setNickname(command[1]);
-			clients[fd].authentication[1] = true;
-			std::cout << GREEN << "Nickname added successfully, Welcome " << RESET << BOLD << clients[fd].getNickname() << RESET << std::endl;
+			clt.setNickname(command[1]);
+			clt.authentication[1] = true;
+			std::cout << GREEN << "Nickname added successfully, Welcome " << RESET << BOLD << clt.getNickname() << RESET << std::endl;
 		}
 	}
 }
 
-void server::check_username(std::vector<std::string>& command, int fd){
-	(void)fd;
-	if (command.size() < 5){
+void server::check_username(std::vector<std::string>& command, client& clt) {
+	if (command.size() != 5){
 		std::cout << RED << "Number of args isn't right, Please use this syntax : " << RESET << std::endl;
 		std::cout << "\t USER <username> 0 * :<realname>" << std::endl;
 	}
@@ -149,8 +149,10 @@ void server::check_username(std::vector<std::string>& command, int fd){
 		if(command[2].compare("0") || command[3].compare("*"))
 			std::cout << UNDERLINE << "Please set the second parameter with <0> and the third with <*>" << RESET << std::endl;
 		else{
-			// clients[fd].setUsername(command[1]);
-			// clients[fd].authentication[2] = true;
+			clt.setUsername(command[1]);
+			clt.setFullname(command[4]);
+			clt.authentication[2] = true;
+            write(clt.getFd(), "You can use all commands\n", 26);
 		}
 		// size_t pos = command[4].find(":");
 		// if (pos == std::string::npos)
@@ -163,30 +165,66 @@ void server::check_username(std::vector<std::string>& command, int fd){
 
 }
 
-void server::authenticate_cmds(std::string line, int fd)
+void server::authenticate_cmds(std::string line, client& clt)
 {
 	std::vector<std::string> command = split_line(line);
 	if (!command[0].compare("PASS"))
-		check_password(command, fd);
-	if (!command[0].compare("NICK") && clients[fd].authentication[0])
-		check_nickname(command, fd);
-	else if (!command[0].compare("NICK") && !clients[fd].authentication[0])
+		check_password(command, clt);
+	else if (!command[0].compare("NICK") && clt.authentication[0])
+		check_nickname(command, clt);
+	else if (!command[0].compare("NICK"))
 		std::cout << UNDERLINE << "Please enter the password first" << RESET << std::endl;
-	if (!command[0].compare("USER") && clients[fd].authentication[0] && clients[fd].authentication[1])
-		check_username(command, fd);
-	else if (!command[0].compare("USER") && (!clients[fd].authentication[0] || !clients[fd].authentication[1]))
+	else if (!command[0].compare("USER") && clt.authentication[0] && clt.authentication[1])
+		check_username(command, clt);
+	else if (!command[0].compare("USER"))
 		std::cout << UNDERLINE << "You need first to set <PASS> and <NICK>" << RESET << std::endl;
 }
 
-void server::execute_cmds(int fd)
+void server::do_join(std::vector<std::string> &command, client &clt)
+{
+	if ((command.size() != 2 && command.size() != 3) || command[1].at(0) != '#')
+			std::cout << "args are invalid" << std::endl;
+	else
+	{
+		command[1].erase(0, 1);
+		bool channelAvailable = false;
+		std::string c_key;
+		if (command.size() == 3)
+			c_key = command[2];
+		for (size_t i = 0; i < channels.size(); i++) {
+			if (!channels[i].getName().compare(command[1]))
+			{
+				channelAvailable = true;
+				channels[i].c_join(clt, c_key);
+				std::cout << "user has joined the channel" << std::endl;
+				break;
+			}
+		}
+		if (!channelAvailable)
+		{
+			// create channel and add the user to it
+		}
+	}
+}
+
+void server::channel_cmds(std::string line, client& clt)
+{
+	std::vector<std::string> command = split_line(line);
+	if (!command[0].compare("/JOIN"))
+		do_join(command, clt);
+}
+
+void server::execute_cmds(client& clt)
 {
 	size_t pos;
 	std::string line;
-	while ((pos = read_buffer[fd].find("\n")) != std::string::npos)
+	while ((pos = read_buffer[clt.getFd()].find("\n")) != std::string::npos)
 	{
-		line = read_buffer[fd].substr(0, pos);
-		authenticate_cmds(line, fd);
-		read_buffer[fd].erase(0, pos + 1);
+		line = read_buffer[clt.getFd()].substr(0, pos);
+		authenticate_cmds(line, clt);
+		if (clt.authentication[0] && clt.authentication[1] && clt.authentication[2])
+			channel_cmds(line, clt);
+		read_buffer[clt.getFd()].erase(0, pos + 1);
 	}
 }
 

@@ -1,7 +1,7 @@
 #include "../includes/Client.hpp"
 #include <string>
 
-client::client(int nb, std::string ip_addr) : fd(nb), ip(ip_addr)
+client::client(int nb) : fd(nb)
 {
 	for (int i = 0; i < 3; i++)
 		authentication[i] = false;
@@ -9,6 +9,11 @@ client::client(int nb, std::string ip_addr) : fd(nb), ip(ip_addr)
 
 client::~client()
 {
+}
+
+int client::getFd() const
+{
+	return fd;
 }
 
 void client::setNickname(const std::string n)

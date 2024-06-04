@@ -4,7 +4,7 @@ CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -I includes
 
 CXX= c++
 
-SRCS  = main.cpp sources/Server.cpp sources/Client.cpp\
+SRCS  = main.cpp sources/Server.cpp sources/Client.cpp sources/Channel.cpp\
 
 OBJS = $(SRCS:.cpp=.o)
 

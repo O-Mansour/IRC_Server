@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <ctime>
 #include <iomanip>
-
+#include "Channel.hpp"
 
 //==========Macros===============
 #define BUFFER_SIZE 1024
@@ -45,17 +45,21 @@ class server {
 		std::vector <struct pollfd> poll_fds;
 		std::vector <client> clients;
 		std::map<int, std::string> read_buffer;
+		std::vector <channel> channels;
 	public:
 		server(int p, std::string pass);
 		~server();
 		void startWaiting();
 		void CreateClient();
-		void HandleData(int fd);
-		void execute_cmds(int fd);
-		void authenticate_cmds(std::string line, int fd);
-		void check_password(std::vector<std::string> &command, int fd);
-		void check_nickname(std::vector<std::string> &command, int fd);
-		void check_username(std::vector<std::string> &command, int fd);
+		void HandleData(client& clt);
+		void execute_cmds(client& clt);
+		void authenticate_cmds(std::string line, client& clt);
+		void check_password(std::vector<std::string> &command, client& clt);
+		void check_nickname(std::vector<std::string> &command, client& clt);
+		void check_username(std::vector<std::string> &command, client& clt);
+		void channel_cmds(std::string line, client& clt);
+		void do_join(std::vector<std::string> &command, client& clt);
+
 };
 
 void print_time();
