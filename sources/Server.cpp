@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <sys/types.h>
 #include <vector>
@@ -84,18 +85,20 @@ void server::startWaiting()
 	}
 }
 
-// needs more tests
 std::vector<std::string> split_line(std::string line)
 {
 	std::vector<std::string> res;
+	char *buff = new char[line.size() + 1];
 	char* word;
 
-	word = std::strtok(const_cast<char*>(line.c_str()), " 	");
+	buff = std::strcpy(buff, line.c_str());
+	word = std::strtok(buff, " 	");
 	while (word)
 	{
 		res.push_back(word);
 		word = std::strtok(NULL, " 	");
 	}
+	delete [] buff;
 	return res;
 }
 
@@ -165,7 +168,7 @@ void server::check_username(std::vector<std::string>& command, client& clt) {
 			}
 			clt.setFullname(command[4].substr(1));
 			clt.authentication[2] = true;
-		 	std::cout << GREEN << "Username added successfully" << RESET << std::endl;
+		 	std::cout << GREEN << "Username added successfully" << std::endl;
 		}
 		else{
 				clt.setUsername(command[1]);
@@ -229,13 +232,56 @@ void server::do_join(std::vector<std::string> &command, client &clt)
 	}
 }
 
+void server::do_privmsg(std::vector<std::string> &command, client &clt, std::string line)
+{
+	if (command.size() < 3){
+		std::cout << RED << "args are invalid, Use this syntax" << RESET << std::endl;
+		std::cout << UNDERLINE << "\t PRIVMSG <channel/user nickname> :<message>" << RESET << std::endl;
+	}
+	else if (command[2].at(0) != ':')
+		std::cout << RED << "Not valid syntax" << RESET << std::endl;
+	else{
+		if (command[1].at(0) == '#'){
+			command[1].erase(0, 1);
+			for (size_t i = 0; i < channels.size(); i++) {
+				if (!channels[i].getName().compare(command[1].erase(0, 1)))
+				{
+					size_t pos = line.find(":");
+					if (pos == std::string::npos)
+						std::cout << RED << "Error" << RESET << std::endl;
+					line = line.substr(pos);
+					channels[i].c_privmsg(clt, line);
+					//write the msg for all the users in that channel
+				}
+			}
+		}
+		else{
+			size_t pos = line.find(":");
+			if (pos == std::string::npos)
+				std::cout << RED << "Error" << RESET << std::endl;
+			line = line.substr(pos + 1);
+			for (size_t i = 0; i < clients.size(); i++){
+				if (!clients[i].getNickname().compare(command[1])){
+					//write the msg for the user
+					std::stringstream ss;
+					ss << UNDERLINE << "New message from " << clt.getNickname() << " :" << RESET << std::endl;
+					write(clients[i].getFd(), ss.str().c_str(), ss.str().size());
+					write(clients[i].getFd(), line.c_str(), line.size());
+					write(clients[i].getFd(), "\n", 1);
+				}
+			}
+		}
+	}
+}
+
+
 void server::channel_cmds(std::string line, client& clt)
 {
 	std::vector<std::string> command = split_line(line);
 	if (!command[0].compare("/JOIN"))
 		do_join(command, clt);
-	else if (!command[0].compare("/JOIN"))
-		do_join(command, clt);
+	else if (!command[0].compare("/PRIVMSG"))
+		do_privmsg(command, clt, line);
 }
 
 void server::execute_cmds(client& clt)

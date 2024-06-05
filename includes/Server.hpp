@@ -1,6 +1,4 @@
-#ifndef SERVER_HPP
-# define SERVER_HPP
-
+#pragma once
 
 //=========Includes=============
 #include <netinet/in.h>
@@ -59,9 +57,8 @@ class server {
 		void check_username(std::vector<std::string> &command, client& clt);
 		void channel_cmds(std::string line, client& clt);
 		void do_join(std::vector<std::string> &command, client& clt);
-
+		void do_privmsg(std::vector<std::string> &command, client &clt, std::string line);
 };
 
 void print_time();
 void print_ft_irc();
-#endif
