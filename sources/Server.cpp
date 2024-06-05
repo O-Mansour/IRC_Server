@@ -288,6 +288,20 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt, std::str
 		}
 	}
 }
+std::string extract_param(std::vector<std::string> &command, std::string line, int argIndex)
+{
+	size_t pos;
+	for (int i = 0; i < argIndex; i++)
+	{
+		pos = line.find(command[i]);
+		if (pos != std::string::npos)
+			line.erase(0, pos + command[i].length());
+	}
+	pos = line.find(':');
+	if (pos != std::string::npos)
+		line.erase(0, pos + 1);
+	return line;
+}
 
 void server::do_topic(std::vector<std::string> &command, client &clt, std::string line)
 {
@@ -303,7 +317,7 @@ void server::do_topic(std::vector<std::string> &command, client &clt, std::strin
 				if (channels[i].getTopic().empty())
 					std::cout << "Channel has no topic yet" << std::endl;
 				else {
-					std::string c_topic = channels[i].getTopic();
+					std::string c_topic = channels[i].getTopic() + "\n";
 					send(clt.getFd(), c_topic.c_str(), c_topic.length(), 0);
 					send(clt.getFd(), "\n", 1, 0);
 				}
@@ -313,11 +327,11 @@ void server::do_topic(std::vector<std::string> &command, client &clt, std::strin
 		if (i == channels.size())
 			std::cout << "Channel doesn't exist" << std::endl;
 	}
-	// TOPIC #channel:::name :The New     Topic
+	// TOPIC #channel:::name :The: New:     Topic
 	// TOPIC #channelname :ThisIsTheNewTopic
 	else if (command.size() > 2 && command[1].at(0) == '#' && command[2].at(0) == ':')
 	{
-		std::string new_topic = extract_param(command, line);
+		std::string new_topic = extract_param(command, line, 2);
 		command[1].erase(0, 1);
 		size_t i;
 		for (i = 0; i < channels.size(); i++) {
@@ -350,9 +364,12 @@ void server::execute_cmds(client& clt)
 	while ((pos = read_buffer[clt.getFd()].find("\n")) != std::string::npos)
 	{
 		line = read_buffer[clt.getFd()].substr(0, pos);
-		authenticate_cmds(line, clt);
-		if (clt.authentication[0] && clt.authentication[1] && clt.authentication[2])
-			channel_cmds(line, clt);
+		if (!line.empty() && line.compare("\r") != 0)
+		{
+			authenticate_cmds(line, clt);
+			if (clt.authentication[0] && clt.authentication[1] && clt.authentication[2])
+				channel_cmds(line, clt);
+		}
 		read_buffer[clt.getFd()].erase(0, pos + 1);
 	}
 }
