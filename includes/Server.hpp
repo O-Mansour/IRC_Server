@@ -59,7 +59,7 @@ class server {
 		void check_username(std::vector<std::string> &command, client& clt);
 		void channel_cmds(std::string line, client& clt);
 		void do_join(std::vector<std::string> &command, client& clt);
-		void do_topic(std::vector<std::string> &command, client& clt);
+		void do_topic(std::vector<std::string> &command, client& clt, std::string line);
 
 };
 

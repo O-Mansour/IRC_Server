@@ -210,10 +210,25 @@ void server::do_join(std::vector<std::string> &command, client &clt)
 	}
 }
 
-void server::do_topic(std::vector<std::string> &command, client &clt)
+std::string extract_param(std::vector<std::string> &command, std::string line)
+{
+	// need a for loop here
+	size_t pos = line.find(command[0]);
+	if (pos != std::string::npos)
+		line.erase(0, pos + command[0].length());
+	pos = line.find(command[1]);
+	if (pos != std::string::npos)
+		line.erase(0, pos + command[1].length());
+	pos = line.find(':');
+	if (pos != std::string::npos)
+		line.erase(0, pos + 1);
+	return line;
+}
+
+void server::do_topic(std::vector<std::string> &command, client &clt, std::string line)
 {
 	// need to check the mode (t) here
-	if (command.size() == 2 && command[1].at(0) != '#')
+	if (command.size() == 2 && command[1].at(0) == '#')
 	{
 		// TOPIC #channelname
 		command[1].erase(0, 1);
@@ -221,8 +236,12 @@ void server::do_topic(std::vector<std::string> &command, client &clt)
 		for (i = 0; i < channels.size(); i++) {
 			if (!channels[i].getName().compare(command[1]))
 			{
-				std::string c_topic = channels[i].getTopic();
-				send(clt.getFd(), c_topic.c_str(), c_topic.length(), 0);
+				if (channels[i].getTopic().empty())
+					std::cout << "Channel has no topic yet" << std::endl;
+				else {
+					std::string c_topic = channels[i].getTopic();
+					send(clt.getFd(), c_topic.c_str(), c_topic.length(), 0);
+				}
 				break;
 			}
 		}
@@ -231,9 +250,21 @@ void server::do_topic(std::vector<std::string> &command, client &clt)
 	}
 	// TOPIC #channel:::name :The New     Topic
 	// TOPIC #channelname :ThisIsTheNewTopic
-	else if (command.size() > 2 && command[1].at(0) != '#')
-	{}
-	// now i am working here
+	else if (command.size() > 2 && command[1].at(0) == '#' && command[2].at(0) == ':')
+	{
+		std::string new_topic = extract_param(command, line);
+		command[1].erase(0, 1);
+		size_t i;
+		for (i = 0; i < channels.size(); i++) {
+			if (!channels[i].getName().compare(command[1]))
+			{
+				channels[i].setTopic(new_topic);
+				break;
+			}
+		}
+		if (i == channels.size())
+			std::cout << "Channel doesn't exist" << std::endl;
+	}
 }
 
 void server::channel_cmds(std::string line, client& clt)
@@ -242,7 +273,7 @@ void server::channel_cmds(std::string line, client& clt)
 	if (!command[0].compare("/JOIN"))
 		do_join(command, clt);
 	else if (!command[0].compare("/TOPIC"))
-		do_topic(command, clt);
+		do_topic(command, clt, line);
 }
 
 void server::execute_cmds(client& clt)
