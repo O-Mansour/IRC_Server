@@ -3,6 +3,7 @@
 
 #include "Client.hpp"
 #include <vector>
+#include <iostream>
 
 class channel {
 	private:
@@ -14,10 +15,11 @@ class channel {
 		channel(std::string n);
 		~channel();
 		std::string getName() const;
-		// void		setName(const std::string n);
+		std::string getTopic() const;
+		void		setTopic(const std::string t);
 
 		//cmds :
-		void c_join(client &clt, std::string key);
+		void c_join(client &clt, std::string k);
 };
 
 #endif
