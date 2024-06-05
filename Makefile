@@ -22,4 +22,4 @@ fclean : clean
 re : fclean all
 
 run :
-	make && make clean > /dev/null && echo "Compiled successufly..." && clear
+	make && make clean > /dev/null && clear && echo "Compiled successufly..."

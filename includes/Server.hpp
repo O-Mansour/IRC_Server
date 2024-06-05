@@ -58,6 +58,7 @@ class server {
 		void channel_cmds(std::string line, client& clt);
 		void do_join(std::vector<std::string> &command, client& clt);
 		void do_privmsg(std::vector<std::string> &command, client &clt, std::string line);
+		void do_topic(std::vector<std::string> &command, client& clt);
 };
 
 void print_time();

@@ -14,12 +14,34 @@ std::string channel::getName() const
 	return name;
 }
 
-void channel::c_join(client &clt, std::string key)
+std::string channel::getTopic() const
 {
-	(void) clt;
-	(void) key;
+	return topic;
+}
 
-	// to be continued
+void channel::setTopic(const std::string t)
+{
+	topic = t;
+}
+
+void channel::c_join(client &clt, std::string k)
+{
+	if (key.empty() || !this->key.compare(k))
+	{
+		size_t i;
+		for (i = 0; i < clients.size(); i++)
+		{
+			if (clt.getFd() == clients[i].getFd())
+			{
+				std::cout << "Client has joined the channel already" << std::endl;
+				break ;
+			}
+		}
+		if (i == clients.size())
+			clients.push_back(clt);
+	}
+	else
+		std::cout << "Channel key incorrect" << std::endl;
 }
 
 void channel::c_privmsg(client &clt, std::string key){

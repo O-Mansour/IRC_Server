@@ -16,6 +16,7 @@
 #define UNDERLINE "\033[4;37m"
 #define BOLD "\033\e[1m"
 
+#include <iostream>
 
 class channel {
 	private:
@@ -27,7 +28,8 @@ class channel {
 		channel(std::string n);
 		~channel();
 		std::string getName() const;
-		// void		setName(const std::string n);
+		std::string getTopic() const;
+		void		setTopic(const std::string t);
 
 		//cmds :
 		void c_join(client &clt, std::string key);
