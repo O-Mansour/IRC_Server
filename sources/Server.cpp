@@ -92,11 +92,11 @@ std::vector<std::string> split_line(std::string line)
 	char* word;
 
 	buff = std::strcpy(buff, line.c_str());
-	word = std::strtok(buff, " 	");
+	word = std::strtok(buff, " 	\r");
 	while (word)
 	{
 		res.push_back(word);
-		word = std::strtok(NULL, " 	");
+		word = std::strtok(NULL, " 	\r");
 	}
 	delete [] buff;
 	return res;
@@ -195,11 +195,11 @@ void server::authenticate_cmds(std::string line, client& clt)
 	std::vector<std::string> command = split_line(line);
 	if (!command[0].compare("PASS"))
 		check_password(command, clt);
-	else if (!command[0].compare("NICK") && clt.authentication[0])
+	if (!command[0].compare("NICK") && clt.authentication[0])
 		check_nickname(command, clt);
 	else if (!command[0].compare("NICK"))
 		std::cout << UNDERLINE << "Please enter the password first" << RESET << std::endl;
-	else if (!command[0].compare("USER") && clt.authentication[0] && clt.authentication[1])
+	if (!command[0].compare("USER") && clt.authentication[0] && clt.authentication[1])
 		check_username(command, clt);
 	else if (!command[0].compare("USER"))
 		std::cout << UNDERLINE << "You need first to set <PASS> and <NICK>" << RESET << std::endl;
@@ -251,7 +251,6 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt, std::str
 						std::cout << RED << "Error" << RESET << std::endl;
 					line = line.substr(pos);
 					channels[i].c_privmsg(clt, line);
-					//write the msg for all the users in that channel
 				}
 			}
 		}
