@@ -235,6 +235,8 @@ void server::do_join(std::vector<std::string> &command, client &clt)
 	}
 }
 
+//TODO:
+//need to check for ':' in user/chaneel name
 void server::do_privmsg(std::vector<std::string> &command, client &clt, std::string line)
 {
 	if (command.size() < 3){
@@ -247,7 +249,7 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt, std::str
 		if (command[1].at(0) == '#'){
 			command[1].erase(0, 1);
 			for (size_t i = 0; i < channels.size(); i++) {
-				if (!channels[i].getName().compare(command[1].erase(0, 1)))
+				if (!channels[i].getName().compare(command[1]))
 				{
 					size_t pos = line.find(":");
 					if (pos == std::string::npos)
@@ -311,6 +313,7 @@ void server::channel_cmds(std::string line, client& clt)
 		do_privmsg(command, clt, line);
 	else if (!command[0].compare("/TOPIC"))
 		do_topic(command, clt);
+	else if (!command[0].compare("/KICK")){}
 }
 
 void server::execute_cmds(client& clt)
