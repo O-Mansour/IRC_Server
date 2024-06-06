@@ -6,8 +6,6 @@
 
 ## Authentication
 
-`(@melhadou) working on this`
-- next step is implmenting auth using *`PASS`* command, and set *`NICK`* and *`USER`*
 
 ### Resources
 - [Internet Relay Chat: Message format, ...](https://chi.cs.uchicago.edu/chirc/index.html) 
