@@ -72,3 +72,12 @@ void channel::c_privmsg(client &clt, std::string key){
 		write(clients[i].getFd(), "\n", 1);
 	}
 }
+
+int channel::kick_user(std::string &key){
+	for (size_t i = 0; i < clients.size(); i++){
+		if (!clients[i].getNickname().compare(key))
+			return i;
+	}
+	return -1;
+}
+

@@ -283,6 +283,7 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt, std::str
 }
 
 void server::do_invite(std::vector<std::string> &command, client &clt){
+	std::stringstream ss;
 	if (command.size() != 3)
 		std::cout << RED << "Syntax error : /INVITE <nickname> <channel>" << RESET << std::endl;		
 	else{
@@ -311,14 +312,37 @@ void server::do_invite(std::vector<std::string> &command, client &clt){
 		for (size_t i = 0; i < channels.size(); i++){
 			if (channels[i].getCltFd(clt.getFd()))
 				clt_part_in_it = true;
+			if (channels[i].getCltFd(fd)){
+				ss << RED << "You already joined this channel : " << command[2] << RESET << std::endl;
+				write(fd, ss.str().c_str(), ss.str().size());
+				return ;
+			}
 		}
 		if (clt_part_in_it){
-			std::stringstream ss;
 			ss << UNDERLINE << clt.getNickname() << " invite you to join " << command[2] << " channel" << RESET << std::endl;
 			write(fd, ss.str().c_str(), ss.str().size());
 		}
 		else
 			std::cout << "you are not a part of this channel" << std::endl;
+	}
+}
+
+void server::do_kick(std::vector<std::string> &command, client &clt){
+	std::stringstream ss;
+	if (command.size() != 3 && command.size() != 4)
+		std::cout << "Not valid args" << std::endl;
+	else{
+		command[1].erase(0, 1);
+		for (size_t i = 0; i < channels.size(); i++){
+			if (!channels[i].getName().compare(command[1])){
+				int j = channels[i].kick_user(command[2]);
+				channels.erase(channels.begin() + j);
+				std::cout << RED << clt.getNickname() << " Kick your ass from the channel" << RESET << std::endl;;
+				if (command.size() == 4)
+					std::cout << UNDERLINE << "Reason: " << RESET << command[3] << std::endl;;
+			}
+		}
+		
 	}
 }
 
@@ -377,6 +401,8 @@ void server::channel_cmds(std::string line, client& clt)
 		do_topic(command, clt, line);
 	else if (!command[0].compare("/INVITE"))
 		do_invite(command, clt);
+	else if (!command[0].compare("/KICK"))
+		do_kick(command, clt);
 }
 
 void server::execute_cmds(client& clt)

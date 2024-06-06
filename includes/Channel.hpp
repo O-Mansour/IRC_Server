@@ -37,4 +37,5 @@ class channel {
 		//cmds :
 		void c_join(client &clt, std::string key);
 		void c_privmsg(client &clt, std::string key);
+		int kick_user(std::string &key);
 };
