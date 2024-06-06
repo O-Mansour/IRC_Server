@@ -66,7 +66,7 @@ void server::HandleData(client& clt)
 	}
 }
 
-void server::startWaiting()
+void server::start()
 {
 	while (true)
 	{
@@ -85,22 +85,21 @@ void server::startWaiting()
 	}
 }
 
-
-
-std::string extract_param(std::vector<std::string> &command, std::string line)
+std::string extract_param(std::vector<std::string> &command, std::string line, int argIndex)
 {
-	// need a for loop here
-	size_t pos = line.find(command[0]);
-	if (pos != std::string::npos)
-		line.erase(0, pos + command[0].length());
-	pos = line.find(command[1]);
-	if (pos != std::string::npos)
-		line.erase(0, pos + command[1].length());
+	size_t pos;
+	for (int i = 0; i < argIndex; i++)
+	{
+		pos = line.find(command[i]);
+		if (pos != std::string::npos)
+			line.erase(0, pos + command[i].length());
+	}
 	pos = line.find(':');
 	if (pos != std::string::npos)
 		line.erase(0, pos + 1);
 	return line;
 }
+
 
 std::vector<std::string> split_line(std::string line)
 {
@@ -161,7 +160,7 @@ void server::check_nickname(std::vector<std::string>& command, client& clt){
 	}
 }
 
-void server::check_username(std::vector<std::string>& command, client& clt) {
+void server::check_username(std::vector<std::string>& command, client& clt, std::string &line) {
 	if (command.size() < 5){
 		std::cout << RED << "Number of args isn't right, Please use this syntax : " << RESET << std::endl;
 		std::cout << "\t USER <username> 0 * :<realname>" << std::endl;
@@ -185,7 +184,7 @@ void server::check_username(std::vector<std::string>& command, client& clt) {
 			}
 			clt.setFullname(command[4].substr(1));
 			clt.authentication[2] = true;
-		 	std::cout << GREEN << "Username added successfully" << std::endl;
+		 	std::cout << GREEN << "Username added successfully" << RESET << std::endl;
 		}
 		else{
 				clt.setUsername(command[1]);
@@ -194,13 +193,8 @@ void server::check_username(std::vector<std::string>& command, client& clt) {
 					std::cout << "\t USER <username> 0 * :<realname>" << std::endl;
 					return ;
 				}
-				std::string buf = command[4].substr(1);
-				for (size_t i = 5; i < command.size();i++){
-				if (i + 1)
-					buf.append(" ");
-				buf.append(command[i]);
-				}
-				clt.setFullname(buf);
+				line = extract_param(command, line, 4);
+				clt.setFullname(line);
 				clt.authentication[2] = true;
 		 		std::cout << GREEN << "Username added successfully" << RESET << std::endl;
 			}
@@ -217,7 +211,7 @@ void server::authenticate_cmds(std::string line, client& clt)
 	else if (!command[0].compare("NICK"))
 		std::cout << UNDERLINE << "Please enter the password first" << RESET << std::endl;
 	if (!command[0].compare("USER") && clt.authentication[0] && clt.authentication[1])
-		check_username(command, clt);
+		check_username(command, clt, line);
 	else if (!command[0].compare("USER"))
 		std::cout << UNDERLINE << "You need first to set <PASS> and <NICK>" << RESET << std::endl;
 }
@@ -238,6 +232,7 @@ void server::do_join(std::vector<std::string> &command, client &clt)
 			{
 				channelAvailable = true;
 				channels[i].c_join(clt, c_key);
+				channels[i].setSize();
 				std::cout << "user has joined the channel" << std::endl;
 				break;
 			}
@@ -247,13 +242,12 @@ void server::do_join(std::vector<std::string> &command, client &clt)
 			// create channel and add the user to it
 			channel cnl(command[1]);
 			cnl.c_join(clt, "");
+			cnl.setSize();
 			channels.push_back(cnl);
 		}
 	}
 }
 
-//TODO:
-//need to check for ':' in user/chaneel name
 void server::do_privmsg(std::vector<std::string> &command, client &clt, std::string line)
 {
 	if (command.size() < 3){
@@ -268,16 +262,15 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt, std::str
 			for (size_t i = 0; i < channels.size(); i++) {
 				if (!channels[i].getName().compare(command[1]))
 				{
-					line = extract_param(command, line);
+					line = extract_param(command, line, 2);
 					channels[i].c_privmsg(clt, line);
 				}
 			}
 		}
 		else{
-			line = extract_param(command, line);
+			line = extract_param(command, line, 2);
 			for (size_t i = 0; i < clients.size(); i++){
 				if (!clients[i].getNickname().compare(command[1])){
-					//write the msg for the user
 					std::stringstream ss;
 					ss << UNDERLINE << "New message from " << clt.getNickname() << " :" << RESET << std::endl;
 					write(clients[i].getFd(), ss.str().c_str(), ss.str().size());
@@ -288,20 +281,47 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt, std::str
 		}
 	}
 }
-std::string extract_param(std::vector<std::string> &command, std::string line, int argIndex)
-{
-	size_t pos;
-	for (int i = 0; i < argIndex; i++)
-	{
-		pos = line.find(command[i]);
-		if (pos != std::string::npos)
-			line.erase(0, pos + command[i].length());
+
+void server::do_invite(std::vector<std::string> &command, client &clt){
+	if (command.size() != 3)
+		std::cout << RED << "Syntax error : /INVITE <nickname> <channel>" << RESET << std::endl;		
+	else{
+		bool channel_exist = false;
+		bool clt_part_in_it = false;
+		bool user_exist = false;
+		int fd;
+		for (size_t i = 0; i < clients.size(); i++){
+			if (!clients[i].getNickname().compare(command[1])){
+				user_exist = true;
+				fd = clients[i].getFd();
+			}
+		}
+		if (!user_exist){
+			std::cout << "This user : " << command[1] << " doesn't exist" << std::endl;
+			return;
+		}
+		for (size_t i = 0; i < channels.size(); i++){
+			if (!channels[i].getName().compare(command[2]) && channels[i].getSize() > 0)
+				channel_exist = true;
+		}
+		if (!channel_exist){
+			std::cout << "This channel : " << command[2] << " doesn't exist" << std::endl;
+			return;
+		}
+		for (size_t i = 0; i < channels.size(); i++){
+			if (channels[i].getCltFd(clt.getFd()))
+				clt_part_in_it = true;
+		}
+		if (clt_part_in_it){
+			std::stringstream ss;
+			ss << UNDERLINE << clt.getNickname() << " invite you to join " << command[2] << " channel" << RESET << std::endl;
+			write(fd, ss.str().c_str(), ss.str().size());
+		}
+		else
+			std::cout << "you are not a part of this channel" << std::endl;
 	}
-	pos = line.find(':');
-	if (pos != std::string::npos)
-		line.erase(0, pos + 1);
-	return line;
 }
+
 
 void server::do_topic(std::vector<std::string> &command, client &clt, std::string line)
 {
@@ -353,8 +373,10 @@ void server::channel_cmds(std::string line, client& clt)
 		do_join(command, clt);
 	else if (!command[0].compare("/PRIVMSG"))
 		do_privmsg(command, clt, line);
-	else if (!command[0].compare("/TOPIC")){}
+	else if (!command[0].compare("/TOPIC"))
 		do_topic(command, clt, line);
+	else if (!command[0].compare("/INVITE"))
+		do_invite(command, clt);
 }
 
 void server::execute_cmds(client& clt)

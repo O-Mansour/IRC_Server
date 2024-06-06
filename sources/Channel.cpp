@@ -3,6 +3,7 @@
 
 channel::channel(std::string n) : name(n)
 {
+	this->size = 0;
 }
 
 channel::~channel()
@@ -22,6 +23,14 @@ std::string channel::getTopic() const
 void channel::setTopic(const std::string t)
 {
 	topic = t;
+}
+
+void channel::setSize(){
+	this->size += 1;
+}
+
+size_t channel::getSize(){
+	return this->size;
 }
 
 void channel::c_join(client &clt, std::string k)
@@ -44,6 +53,13 @@ void channel::c_join(client &clt, std::string k)
 		std::cout << "Channel key incorrect" << std::endl;
 }
 
+bool channel::getCltFd(int fd){
+	for (size_t i = 0; i < clients.size() ; i++)
+		if (clients[i].getFd() == fd)
+			return true;
+	return false;
+}
+
 void channel::c_privmsg(client &clt, std::string key){
 	for (size_t i = 0; i < clients.size(); i++){
 		std::stringstream ss;
@@ -51,6 +67,7 @@ void channel::c_privmsg(client &clt, std::string key){
 		write(clients[i].getFd(), ss.str().c_str(), ss.str().size());
 		write(clients[i].getFd(), "#", 1);
 		write(clients[i].getFd(), this->getName().c_str(), this->getName().size());
+		write (clients[i].getFd(), " : ", 3);
 		write(clients[i].getFd(), key.c_str(), key.size());
 		write(clients[i].getFd(), "\n", 1);
 	}

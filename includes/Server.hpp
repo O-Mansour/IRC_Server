@@ -47,19 +47,19 @@ class server {
 	public:
 		server(int p, std::string pass);
 		~server();
-		void startWaiting();
+		void start();
 		void CreateClient();
 		void HandleData(client& clt);
 		void execute_cmds(client& clt);
 		void authenticate_cmds(std::string line, client& clt);
 		void check_password(std::vector<std::string> &command, client& clt);
 		void check_nickname(std::vector<std::string> &command, client& clt);
-		void check_username(std::vector<std::string> &command, client& clt);
+		void check_username(std::vector<std::string>& command, client& clt, std::string &line);
 		void channel_cmds(std::string line, client& clt);
 		void do_join(std::vector<std::string> &command, client& clt);
 		void do_privmsg(std::vector<std::string> &command, client &clt, std::string line);
 		void do_topic(std::vector<std::string> &command, client& clt, std::string line);
-
+		void do_invite(std::vector<std::string> &command, client& clt);
 };
 
 void print_time();

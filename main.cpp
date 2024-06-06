@@ -21,7 +21,7 @@ int main(int ac, char *av[])
 	try
 	{
 		server srv = constructServer(av[1], av[2]);
-		srv.startWaiting();
+		srv.start();
 	}
 	catch (std::exception &e)
 	{

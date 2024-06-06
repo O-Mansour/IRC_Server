@@ -24,13 +24,16 @@ class channel {
 		std::string topic;
 		std::string key;
 		std::vector <client> clients;
+		size_t size;
 	public:
 		channel(std::string n);
 		~channel();
 		std::string getName() const;
 		std::string getTopic() const;
 		void		setTopic(const std::string t);
-
+		void setSize();
+		size_t getSize();
+		bool getCltFd(int fd);
 		//cmds :
 		void c_join(client &clt, std::string key);
 		void c_privmsg(client &clt, std::string key);
