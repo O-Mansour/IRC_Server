@@ -1,5 +1,6 @@
 #include "../includes/Channel.hpp"
 #include <sstream>
+#include <string>
 
 channel::channel(std::string n, std::string opr) : name(n), userLimit(0)
 {
@@ -142,3 +143,19 @@ int channel::kick_user(std::string &key){
 	return -1;
 }
 
+int channel::remove_user(std::string &key){
+	for (size_t i = 0; i < clients.size(); i++){
+		if (!clients[i].getNickname().compare(key))
+			clients.erase(clients.begin() + i);
+	}
+	return -1;
+}
+
+
+int channel::user_fd(std::string &key){
+	for (size_t i = 0; i < clients.size(); i++){
+		if (!clients[i].getNickname().compare(key))
+			return clients[i].getFd();
+	}
+	return -1;
+}

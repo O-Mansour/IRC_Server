@@ -291,6 +291,7 @@ void server::do_invite(std::vector<std::string> &command, client &clt){
 		bool clt_part_in_it = false;
 		bool user_exist = false;
 		int fd;
+		command[2].erase(0, 1);
 		for (size_t i = 0; i < clients.size(); i++){
 			if (!clients[i].getNickname().compare(command[1])){
 				user_exist = true;
@@ -299,7 +300,7 @@ void server::do_invite(std::vector<std::string> &command, client &clt){
 		}
 		if (!user_exist){
 			std::cout << "This user : " << command[1] << " doesn't exist" << std::endl;
-			return;
+			return ;
 		}
 		for (size_t i = 0; i < channels.size(); i++){
 			if (!channels[i].getName().compare(command[2]) && channels[i].getSize() > 0)
@@ -307,13 +308,18 @@ void server::do_invite(std::vector<std::string> &command, client &clt){
 		}
 		if (!channel_exist){
 			std::cout << "This channel : " << command[2] << " doesn't exist" << std::endl;
-			return;
+			return ;
 		}
 		for (size_t i = 0; i < channels.size(); i++){
 			if (channels[i].getCltFd(clt.getFd()))
 				clt_part_in_it = true;
 			if (channels[i].getCltFd(fd)){
 				ss << RED << "You already joined this channel : " << command[2] << RESET << std::endl;
+				write(fd, ss.str().c_str(), ss.str().size());
+				return ;
+			} 
+			else if (channels[i].c_modes[INVITE_ONLY_M] == false){
+				ss << RED << "This channel has INVITE_ONLY mode : " << command[2] << RESET << std::endl;
 				write(fd, ss.str().c_str(), ss.str().size());
 				return ;
 			}
@@ -333,16 +339,27 @@ void server::do_kick(std::vector<std::string> &command, client &clt){
 		std::cout << "Not valid args" << std::endl;
 	else{
 		command[1].erase(0, 1);
-		for (size_t i = 0; i < channels.size(); i++){
+		size_t i = 0;
+		for (; i < channels.size(); i++){
 			if (!channels[i].getName().compare(command[1])){
+				if (!channels[i].isOperator(clt.getNickname())){
+					std::cout << "You are not an operator" << std::endl;
+					return ;
+				}
 				int j = channels[i].kick_user(command[2]);
-				channels.erase(channels.begin() + j);
-				std::cout << RED << clt.getNickname() << " Kick your ass from the channel" << RESET << std::endl;;
+				if (j == -1){
+					std::cout << RED << "This User doesn't exist in this channel" << RESET << std::endl;
+					return;
+				}
+				ss << RED << clt.getNickname() << " Kicked your ass from the channel" << RESET << std::endl;;
 				if (command.size() == 4)
-					std::cout << UNDERLINE << "Reason: " << RESET << command[3] << std::endl;;
+					ss << UNDERLINE << "Reason: " << RESET << command[3] << std::endl;
+				write(channels[i].user_fd(command[2]), ss.str().c_str(), ss.str().size());
+				channels[i].remove_user(command[2]);
+				return ;
 			}
 		}
-		
+		std::cout << RED << "This channel doesn't exist" << RESET << std::endl;
 	}
 }
 
