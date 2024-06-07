@@ -240,7 +240,7 @@ void server::do_join(std::vector<std::string> &command, client &clt)
 		if (!channelAvailable)
 		{
 			// create channel and add the user to it
-			channel cnl(command[1]);
+			channel cnl(command[1], clt.getNickname());
 			cnl.c_join(clt, "");
 			cnl.setSize();
 			channels.push_back(cnl);
@@ -390,6 +390,104 @@ void server::do_topic(std::vector<std::string> &command, client &clt, std::strin
 	}
 }
 
+bool	supported_mode(const std::string& mode)
+{
+	if (!mode.compare("+i") || !mode.compare("-i")
+		|| !mode.compare("+t") || !mode.compare("-t")
+		|| !mode.compare("+k") || !mode.compare("-k")
+		|| !mode.compare("+o") || !mode.compare("-o")
+		|| !mode.compare("+l") || !mode.compare("-l"))
+			return true;
+	return false;
+}
+
+void server::do_mode(std::vector<std::string> &command, client &clt)
+{
+	if ((command.size() != 3 && command.size() != 4) || command[1].at(0) != '#'
+		|| !supported_mode(command[2]))
+			std::cout << "args are invalid" << std::endl;
+	else
+	{
+		command[1].erase(0, 1);
+		// need to make a function that returns the channel to OPTIMIZE
+		if (command[1].empty())
+			return ;
+		if (command.size() == 3)
+		{
+			size_t i;
+			for (i = 0; i < channels.size(); i++) {
+				if (!channels[i].getName().compare(command[1]))
+				{
+					if (!channels[i].isOperator(clt.getNickname()))
+					{
+						std::cout << "client must be an operator" << std::endl;
+						return ;
+					}
+					// cases : +i -i +t -t -k -l
+					if (!command[2].compare("+i"))
+						channels[i].c_modes[INVITE_ONLY_M] = true;
+					else if (!command[2].compare("-i"))
+						channels[i].c_modes[INVITE_ONLY_M] = false;
+					else if (!command[2].compare("+t"))
+						channels[i].c_modes[TOPIC_RESTRICTION_M] = true;
+					else if (!command[2].compare("-t"))
+						channels[i].c_modes[TOPIC_RESTRICTION_M] = false;
+					else if (!command[2].compare("-k"))
+					{
+						channels[i].setKey("");
+						channels[i].c_modes[CHANNEL_KEY_M] = false;
+					}
+					else if (!command[2].compare("-l"))
+					{
+						channels[i].setUserLimit(0);
+						channels[i].c_modes[USER_LIMIT_M] = false;
+					}
+					else
+						std::cout << "MODE does not updated" << std::endl;
+					break;
+				}
+			}
+			if (i == channels.size())
+				std::cout << "Channel doesn't exist" << std::endl;
+		}
+		else if (command.size() == 4)
+		{
+			size_t i;
+			for (i = 0; i < channels.size(); i++) {
+				if (!channels[i].getName().compare(command[1]))
+				{
+					if (!channels[i].isOperator(clt.getNickname()))
+					{
+						std::cout << "client must be an operator" << std::endl;
+						return ;
+					}
+					// cases : +k +l +o -o
+					if (!command[2].compare("+k"))
+					{
+						channels[i].setKey(command[3]);
+						channels[i].c_modes[CHANNEL_KEY_M] = true;
+					}
+					else if (!command[2].compare("+l"))
+					{
+						// need to check the number
+						channels[i].setUserLimit(std::atoi(command[3].c_str()));
+						channels[i].c_modes[USER_LIMIT_M] = true;
+					}
+					else if (!command[2].compare("+o"))
+						channels[i].addAsOperator(command[3]);
+					else if (!command[2].compare("-o"))
+						channels[i].eraseOperator(command[3]);
+					else
+						std::cout << "MODE does not updated" << std::endl;
+					break;
+				}
+			}
+			if (i == channels.size())
+				std::cout << "Channel doesn't exist" << std::endl;
+		}
+	}
+}
+
 void server::channel_cmds(std::string line, client& clt)
 {
 	std::vector<std::string> command = split_line(line);
@@ -403,6 +501,8 @@ void server::channel_cmds(std::string line, client& clt)
 		do_invite(command, clt);
 	else if (!command[0].compare("/KICK"))
 		do_kick(command, clt);
+	else if (!command[0].compare("/MODE"))
+		do_mode(command, clt);
 }
 
 void server::execute_cmds(client& clt)

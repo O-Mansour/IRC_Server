@@ -15,7 +15,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <ctime>
 #include <iomanip>
 #include "Channel.hpp"
@@ -61,6 +61,7 @@ class server {
 		void do_topic(std::vector<std::string> &command, client& clt, std::string line);
 		void do_invite(std::vector<std::string> &command, client& clt);
 		void do_kick(std::vector<std::string> &command, client& clt);
+		void do_mode(std::vector<std::string> &command, client &clt);
 };
 
 void print_time();
