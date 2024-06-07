@@ -47,6 +47,8 @@ class channel {
 		void c_join(client &clt, std::string key);
 		void c_privmsg(client &clt, std::string key);
 		int kick_user(std::string &key);
+		int remove_user(std::string &key);
+		int user_fd(std::string &key);
 		size_t		getUserLimit() const;
 		void		setUserLimit(const size_t limit);
 		std::string getKey() const;
