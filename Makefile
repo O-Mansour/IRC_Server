@@ -16,6 +16,11 @@ $(NAME) : $(OBJS)
 clean :
 	rm -rf $(OBJS)
 
+bear: compile_commands.json
+
+compile_commands.json:
+	bear -- make
+
 fclean : clean
 	rm -fr $(NAME)
 
