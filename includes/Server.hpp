@@ -21,6 +21,7 @@
 #include "Channel.hpp"
 
 //==========Macros===============
+#define SERVER_NAME "EKIP.EKIP"
 #define BUFFER_SIZE 1024
 #define NOT_VALID   -1
 #define MAX_UINT16 65535
@@ -50,6 +51,7 @@ class server {
 		void start();
 		void CreateClient();
 		void HandleData(client& clt);
+		void deleteClientData(client& clt);
 		void execute_cmds(client& clt);
 		void authenticate_cmds(std::string line, client& clt);
 		void check_password(std::vector<std::string> &command, client& clt);

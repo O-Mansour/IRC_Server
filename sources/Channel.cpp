@@ -94,7 +94,6 @@ bool	channel::isOperator(std::string nick)
 	return false;
 }
 
-
 void channel::c_join(client &clt, std::string k)
 {
 	if (key.empty() || !this->key.compare(k))
@@ -135,24 +134,23 @@ void channel::c_privmsg(client &clt, std::string key){
 	}
 }
 
-int channel::kick_user(std::string &key){
+int channel::getUserIndex(const std::string &nick){
 	for (size_t i = 0; i < clients.size(); i++){
-		if (!clients[i].getNickname().compare(key))
+		if (!clients[i].getNickname().compare(nick))
 			return i;
 	}
 	return -1;
 }
 
-int channel::remove_user(std::string &key){
-	for (size_t i = 0; i < clients.size(); i++){
-		if (!clients[i].getNickname().compare(key))
-			clients.erase(clients.begin() + i);
-	}
-	return -1;
+void channel::remove_user(int index, const std::string &nick){
+	clients.erase(clients.begin() + index);
+	std::vector<std::string>::iterator it;
+	it = std::find(operators.begin(), operators.end(), nick);
+	if (it != operators.end())
+		operators.erase(it);
 }
 
-
-int channel::user_fd(std::string &key){
+int channel::user_fd(std::string &key){ // useless function ??
 	for (size_t i = 0; i < clients.size(); i++){
 		if (!clients[i].getNickname().compare(key))
 			return clients[i].getFd();

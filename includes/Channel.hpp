@@ -30,8 +30,8 @@ class channel {
 		std::string topic;
 		std::string key;
 		size_t userLimit;
+		size_t size; // ??
 		std::vector <client> clients;
-		size_t size;
 		std::vector <std::string> operators;
 	public:
 		channel(std::string n, std::string opr);
@@ -43,11 +43,10 @@ class channel {
 		void setSize();
 		size_t getSize();
 		bool getCltFd(int fd);
-		//cmds :
 		void c_join(client &clt, std::string key);
 		void c_privmsg(client &clt, std::string key);
-		int kick_user(std::string &key);
-		int remove_user(std::string &key);
+		int getUserIndex(const std::string &nick);
+		void remove_user(int index, const std::string &nick);
 		int user_fd(std::string &key);
 		size_t		getUserLimit() const;
 		void		setUserLimit(const size_t limit);

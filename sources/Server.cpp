@@ -47,17 +47,46 @@ void server::CreateClient(){
 	std::cout << YELLOW << "New client connected with fd : " << nb << RESET << std::endl;
 }
 
+void server::deleteClientData(client& clt)
+{
+	// erase him from poll_fds vector
+	for (size_t i = 0; i < poll_fds.size(); i++)
+	{
+		if (poll_fds[i].fd == clt.getFd())
+			poll_fds.erase(poll_fds.begin() + i);
+	}
+	// erase him from clients vector
+	for (size_t i = 0; i < clients.size(); i++)
+	{
+		if (clients[i].getFd() == clt.getFd())
+			clients.erase(clients.begin() + i);
+	}
+	// erase his read_buffer
+	std::map<int, std::string>::iterator it = read_buffer.find(clt.getFd());
+	if (it != read_buffer.end())
+		read_buffer.erase(it);
+	// remove him from all channels
+	for (size_t i = 0; i < channels.size(); i++)
+	{
+		int uIndex = channels[i].getUserIndex(clt.getNickname());
+		if (uIndex != NOT_VALID)
+			channels[i].remove_user(uIndex, clt.getNickname());
+	}
+	// close his fd
+	close(clt.getFd());
+}
+
 void server::HandleData(client& clt)
 {
 	char buf[BUFFER_SIZE];
-	ssize_t rn = read(clt.getFd(), buf, BUFFER_SIZE - 1);
+	ssize_t rn = recv(clt.getFd(), buf, BUFFER_SIZE - 1, 0);
 	if (rn < 0)
-		throw std::runtime_error("read() failed");
+		throw std::runtime_error("An error occurred with recv()");
 	else if (rn == 0)
 	{
 		print_time();
 		std::cout << RED << "Client with fd : " << clt.getFd() << " disconnected" << RESET << std::endl;
-		close(clt.getFd());
+		deleteClientData(clt);
 	}
 	else {
 		buf[rn] = '\0';
@@ -119,24 +148,31 @@ std::vector<std::string> split_line(std::string line)
 }
 
 void server::check_password(std::vector<std::string> &command, client& clt){
-	if (command.size() != 2)
-		std::cout << RED << "number of args isn't right" << RESET << std::endl;
+	if (command.size() < 2)
+	{
+		std::string reply = ":" + std::string(SERVER_NAME) + "461 PASS :Not enough parameters\r\n";
+		send(clt.getFd(), reply.c_str(), reply.length(), 0);
+	}
 	else {
 		if(clt.authentication[0])
-			std::cout << RED << "You entered the password already" << RESET<< std::endl;
+		{
+			std::string reply = ":" + std::string(SERVER_NAME) + "462 PASS :Already sent the password\r\n";
+			send(clt.getFd(), reply.c_str(), reply.length(), 0);
+		}
 		else {
 			if (!command[1].compare(password))
-			{
-				std::cout << GREEN << "Correct password, Welcome" << RESET << std::endl;
 				clt.authentication[0] = true;
-			}
 			else
-				std::cout << RED << "Incorrect password" << RESET << std::endl;
+			{
+				std::string reply = ":" + std::string(SERVER_NAME) + "464 PASS :Password incorrect\r\n";
+				send(clt.getFd(), reply.c_str(), reply.length(), 0);
+			}
 		}
 	}
 }
 
 void server::check_nickname(std::vector<std::string>& command, client& clt){
+	// check nickname restrictions
 	if (command.size() != 2)
 		std::cout << RED << "number of args isn't right" << RESET << std::endl;
 	else if (clt.authentication[1])
@@ -346,7 +382,7 @@ void server::do_kick(std::vector<std::string> &command, client &clt){
 					std::cout << "You are not an operator" << std::endl;
 					return ;
 				}
-				int j = channels[i].kick_user(command[2]);
+				int j = channels[i].getUserIndex(command[2]);
 				if (j == -1){
 					std::cout << RED << "This User doesn't exist in this channel" << RESET << std::endl;
 					return;
@@ -355,7 +391,7 @@ void server::do_kick(std::vector<std::string> &command, client &clt){
 				if (command.size() == 4)
 					ss << UNDERLINE << "Reason: " << RESET << command[3] << std::endl;
 				write(channels[i].user_fd(command[2]), ss.str().c_str(), ss.str().size());
-				channels[i].remove_user(command[2]);
+				channels[i].remove_user(j, command[2]);
 				return ;
 			}
 		}
@@ -526,6 +562,7 @@ void server::execute_cmds(client& clt)
 {
 	size_t pos;
 	std::string line;
+	// may need to implement \r\n as end of cmd
 	while ((pos = read_buffer[clt.getFd()].find("\n")) != std::string::npos)
 	{
 		line = read_buffer[clt.getFd()].substr(0, pos);
