@@ -148,15 +148,16 @@ std::vector<std::string> split_line(std::string line)
 }
 
 void server::check_password(std::vector<std::string> &command, client& clt){
+	std::string reply;
 	if (command.size() < 2)
 	{
-		std::string reply = ":" + std::string(SERVER_NAME) + "461 PASS :Not enough parameters\r\n";
+		reply = ERR_NEEDMOREPARAMS(clt.getNickname());
 		send(clt.getFd(), reply.c_str(), reply.length(), 0);
 	}
 	else {
 		if(clt.authentication[0])
 		{
-			std::string reply = ":" + std::string(SERVER_NAME) + "462 PASS :Already sent the password\r\n";
+			reply = ERR_ALREADYREGISTERED(clt.getNickname());
 			send(clt.getFd(), reply.c_str(), reply.length(), 0);
 		}
 		else {
@@ -164,34 +165,71 @@ void server::check_password(std::vector<std::string> &command, client& clt){
 				clt.authentication[0] = true;
 			else
 			{
-				std::string reply = ":" + std::string(SERVER_NAME) + "464 PASS :Password incorrect\r\n";
+				reply = ERR_PASSWDMISMATCH(clt.getNickname());
 				send(clt.getFd(), reply.c_str(), reply.length(), 0);
 			}
 		}
 	}
 }
 
+int ValidNick(std::string &str){
+	if (str[0] == '#' || str[0] == '$'|| str[0] == '&' || str[0] == ':')
+		return 0;
+	for (size_t i = 0; i < str.length(); i++){
+		if ((str[i] >= 9 && str[i] <= 13) || str[i] == 32 || str[i] == ',' || str[i] == '*'
+			|| str[i] == '?' || str[i] == '!' || str[i] == '@' || str[i] == '.')
+			return 0;
+	}
+	return 1;
+}
+
+
 void server::check_nickname(std::vector<std::string>& command, client& clt){
-	// check nickname restrictions
-	if (command.size() != 2)
-		std::cout << RED << "number of args isn't right" << RESET << std::endl;
-	else if (clt.authentication[1])
-		std::cout << YELLOW << "You already assigned a nickname" << RESET << std::endl;
+	std::string reply;
+	if (command.size() != 2 && command.size() != 3){
+		reply = ERR_NONICKNAMEGIVEN(clt.getNickname());
+		send(clt.getFd(), reply.c_str(), reply.length(), 0);
+	}
+	else if (!ValidNick(command[1])){
+		reply = ERR_ERRONEUSNICKNAME(clt.getNickname(), command[1]);
+		send(clt.getFd(), reply.c_str(), reply.length(), 0);
+	}
+	else if (command.size() == 3){
+		if (!ValidNick(command[2])){
+			reply = ERR_ERRONEUSNICKNAME(clt.getNickname(), command[2]);
+			send(clt.getFd(), reply.c_str(), reply.length(), 0);
+			return ;
+		}
+		if (clt.authentication[1]){
+			if (!clt.getNickname().compare(command[1])){
+				reply = ERR_NICKNAMECHANGE(clt.getNickname(), command[2]);
+				clt.setNickname(command[2]);
+				send(clt.getFd(), reply.c_str(), reply.length(), 0);
+			}
+			else{
+				reply = ERR_NICKNAMEINVALID(command[1]);
+				send(clt.getFd(), reply.c_str(), reply.length(), 0);
+			}
+		}
+		else{
+			reply = ERR_NICKNAMEFIRST(clt.getNickname());
+			send(clt.getFd(), reply.c_str(), reply.length(), 0);
+		}
+	}
 	else {
-		bool nickAvailable = true;
-		for (size_t i = 0; i < clients.size(); i++) {
+		size_t i;
+		for (i = 0; i < clients.size(); i++) {
 			if (!clients[i].getNickname().compare(command[1]))
 			{
-				nickAvailable = false;
-				std::cout << YELLOW << "nickname is already used, Please try another one" << RESET << std::endl;
+				reply = ERR_NICKNAMEINUSE(clt.getNickname(), command[1]);
+				send(clt.getFd(), reply.c_str(), reply.length(), 0);
 				break;
 			}
 		}
-		if (nickAvailable)
+		if (i == clients.size())
 		{
 			clt.setNickname(command[1]);
 			clt.authentication[1] = true;
-			std::cout << GREEN << "Nickname added successfully, Welcome " << RESET << BOLD << clt.getNickname() << RESET << std::endl;
 		}
 	}
 }
@@ -239,17 +277,22 @@ void server::check_username(std::vector<std::string>& command, client& clt, std:
 
 void server::authenticate_cmds(std::string line, client& clt)
 {
+	std::string reply;
 	std::vector<std::string> command = split_line(line);
 	if (!command[0].compare("PASS"))
 		check_password(command, clt);
 	if (!command[0].compare("NICK") && clt.authentication[0])
 		check_nickname(command, clt);
-	else if (!command[0].compare("NICK"))
-		std::cout << UNDERLINE << "Please enter the password first" << RESET << std::endl;
+	else if (!command[0].compare("NICK")){
+		reply = ERR_NEEDMOREPARAMS(clt.getNickname());
+		send(clt.getFd(), reply.c_str(), reply.length(), 0);
+	}
 	if (!command[0].compare("USER") && clt.authentication[0] && clt.authentication[1])
 		check_username(command, clt, line);
-	else if (!command[0].compare("USER"))
-		std::cout << UNDERLINE << "You need first to set <PASS> and <NICK>" << RESET << std::endl;
+	else if (!command[0].compare("USER")){
+		reply = ERR_NEEDMOREPARAMS(clt.getNickname());
+		send(clt.getFd(), reply.c_str(), reply.length(), 0);
+	}
 }
 
 void server::do_join(std::vector<std::string> &command, client &clt)

@@ -20,9 +20,27 @@
 #include <iomanip>
 #include "Channel.hpp"
 
+//=========Errors===============
+//PASS :
+# define ERR_NEEDMOREPARAMS(client) (":localhost 461 " + client + " :Not enough parameters\r\n")
+# define ERR_ALREADYREGISTERED(client) (":localhost 462 " + client + " :You may not reregister\r\n")
+# define ERR_PASSWDMISMATCH(client) (":localhost 464 " + client + " :Password incorrect\r\n")
+//NICK :
+# define ERR_NONICKNAMEGIVEN(client) (":localhost 431 " + client + " :No nickname given\r\n")
+# define ERR_ERRONEUSNICKNAME(client, nick)("localhost 432 " + client + " " + nick + " :Erroneus nickname\r\n")
+# define ERR_NICKNAMEINUSE(client, nick)("localhost 433 " + client + " " + nick + " :Nickname is already in use\r\n")
+# define ERR_NICKNAMECHANGE(client, nick)("localhost 434 " + client + ":Changed his nickname to " + nick + " \r\n")
+# define ERR_NICKNAMEFIRST(client)("localhost 435 " + client + " Enter a nickname first\r\n")
+# define ERR_NICKNAMEINVALID(client)("localhost 436 " + client + " :Is invalid\r\n")
+
+
+
+
+
+
 //==========Macros===============
 #define SERVER_NAME "EKIP.EKIP"
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 512
 #define NOT_VALID   -1
 #define MAX_UINT16 65535
 #define RESERVED_PORTS 1024
