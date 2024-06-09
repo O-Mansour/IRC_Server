@@ -560,17 +560,17 @@ void server::do_mode(std::vector<std::string> &command, client &clt)
 void server::channel_cmds(std::string line, client& clt)
 {
 	std::vector<std::string> command = split_line(line);
-	if (!command[0].compare("/JOIN"))
+	if (!command[0].compare("JOIN"))
 		do_join(command, clt);
-	else if (!command[0].compare("/PRIVMSG"))
+	else if (!command[0].compare("PRIVMSG"))
 		do_privmsg(command, clt, line);
-	else if (!command[0].compare("/TOPIC"))
+	else if (!command[0].compare("TOPIC"))
 		do_topic(command, clt, line);
-	else if (!command[0].compare("/INVITE"))
+	else if (!command[0].compare("INVITE"))
 		do_invite(command, clt);
-	else if (!command[0].compare("/KICK"))
+	else if (!command[0].compare("KICK"))
 		do_kick(command, clt);
-	else if (!command[0].compare("/MODE"))
+	else if (!command[0].compare("MODE"))
 		do_mode(command, clt);
 }
 
