@@ -218,8 +218,10 @@ void server::check_nickname(std::vector<std::string>& command, client& clt){
 void server::check_username(std::vector<std::string>& command, client& clt, std::string &line) {
 	if (command.size() < 5)
 		send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
-	else if (clt.authentication[2])
+	else if (clt.authentication[2]){
 		send_reply(clt.getFd(), ERR_ALREADYREGISTERED(clt.getNickname()));
+		return ;
+	}
 	else if(command[2].compare("0") || command[3].compare("*"))
 		send_reply(clt.getFd(), ERR_USERFORMAT());
 	else if (command[4].at(0) != ':')
@@ -244,6 +246,13 @@ void server::check_username(std::vector<std::string>& command, client& clt, std:
 				clt.setFullname(line);
 				clt.authentication[2] = true;
 			}
+	}
+	if (clt.authentication[2]){
+		send_reply(clt.getFd(), RPL_WELCOME(clt.getNickname()));
+		send_reply(clt.getFd(), RPL_YOURHOST());
+		send_reply(clt.getFd(), RPL_CREATED());
+		send_reply(clt.getFd(), RPL_MYINFO());
+		send_reply(clt.getFd(), RPL_ISUPPORT());
 	}
 }
 
@@ -562,7 +571,7 @@ void server::send_pong(std::vector<std::string> &command, client &clt)
 		send_reply(clt.getFd(), (ERR_NEEDMOREPARAMS()));
 	else
 	{
-		std::string pong = "PONG " + std::string(SERVER_NAME) + command[1] + "\r\n";
+		std::string pong = "PONG " + std::string(SERVER_NAME) + " " + command[1] + "\r\n";
 		send(clt.getFd(), pong.c_str(), pong.length(), 0);
 	}
 }

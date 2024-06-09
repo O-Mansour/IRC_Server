@@ -21,6 +21,12 @@
 #include "Channel.hpp"
 
 //=========Errors===============
+//Welcome
+# define RPL_WELCOME(nickname) (":localhost 001 " + nickname + " :Welcome to the Internet Relay Network \r\n")
+# define RPL_YOURHOST() (":localhost 002  :Your host is  (localhost), running version \r\n")
+# define RPL_CREATED() (":localhost 003 :This server was created \r\n")
+# define RPL_MYINFO() (":localhost 004 \r\n")
+# define RPL_ISUPPORT() (":localhost 005 :are supported by this server\r\n")
 //PASS :
 # define ERR_NEEDMOREPARAMS() (RED "localhost: Not enough parameters\r\n" RESET)
 # define ERR_ALREADYREGISTERED(client) (RED "localhost: " + client + " :You may not reregister\r\n" RESET)
@@ -40,7 +46,7 @@
 
 
 //==========Macros===============
-#define SERVER_NAME "EKIP.EKIP"
+#define SERVER_NAME "FT_IRC"
 #define BUFFER_SIZE 512
 #define NOT_VALID   -1
 #define MAX_UINT16 65535
