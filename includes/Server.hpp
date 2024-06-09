@@ -22,19 +22,20 @@
 
 //=========Errors===============
 //PASS :
-# define ERR_NEEDMOREPARAMS(client) (":localhost 461 " + client + " :Not enough parameters\r\n")
-# define ERR_ALREADYREGISTERED(client) (":localhost 462 " + client + " :You may not reregister\r\n")
-# define ERR_PASSWDMISMATCH(client) (":localhost 464 " + client + " :Password incorrect\r\n")
+# define ERR_NEEDMOREPARAMS() (RED "localhost: Not enough parameters\r\n" RESET)
+# define ERR_ALREADYREGISTERED(client) (RED "localhost: " + client + " :You may not reregister\r\n" RESET)
+# define ERR_PASSWDMISMATCH() (RED "localhost: Password incorrect\r\n" RESET)
 //NICK :
-# define ERR_NONICKNAMEGIVEN(client) (":localhost 431 " + client + " :No nickname given\r\n")
-# define ERR_ERRONEUSNICKNAME(client, nick)("localhost 432 " + client + " " + nick + " :Erroneus nickname\r\n")
-# define ERR_NICKNAMEINUSE(client, nick)("localhost 433 " + client + " " + nick + " :Nickname is already in use\r\n")
-# define ERR_NICKNAMECHANGE(client, nick)("localhost 434 " + client + ":Changed his nickname to " + nick + " \r\n")
-# define ERR_NICKNAMEFIRST(client)("localhost 435 " + client + " Enter a nickname first\r\n")
-# define ERR_NICKNAMEINVALID(client)("localhost 436 " + client + " :Is invalid\r\n")
+# define ERR_NONICKNAMEGIVEN(client) (RED "localhost: No nickname given\r\n" RESET)
+# define ERR_ERRONEUSNICKNAME()(RED "localhost: Invalid character\r\n" RESET)
+# define ERR_NICKNAMEINUSE(client, nick)(RED "localhost: " + client + " This \"" + nick + "\" Nickname is already in use\r\n" RESET)
+# define ERR_NICKNAMECHANGE(client, nick)(GREEN "localhost: " + client + " Changed his nickname to " + nick + " \r\n" RESET)
+# define ERR_NICKNAMEFIRST()(RED "localhost: Enter a nickname first\r\n" RESET)
+# define ERR_NICKNAMEINVALID(client)(RED "localhost: " + client + " :Is invalid\r\n" RESET)
 
-
-
+//USER
+#define ERR_USERFORMAT() (UNDERLINE "localhost: Please set the second parameter with <0> and the third with <*>\r\n" RESET)
+#define ERR_USERSYNTAX() (RED "localhost: Please use this syntax : USER <username> 0 * :<realname>\r\n" RESET)
 
 
 
@@ -73,6 +74,7 @@ class server {
 		void execute_cmds(client& clt);
 		void authenticate_cmds(std::string line, client& clt);
 		void check_password(std::vector<std::string> &command, client& clt);
+		void send_reply(int fd, std::string str);
 		void check_nickname(std::vector<std::string> &command, client& clt);
 		void check_username(std::vector<std::string>& command, client& clt, std::string &line);
 		void channel_cmds(std::string line, client& clt);
