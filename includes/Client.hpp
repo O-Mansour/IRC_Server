@@ -8,6 +8,7 @@ class client {
 		std::string nickname;
 		std::string username;
 		std::string fullname;
+
 	public:
 		client(int nb);
 		~client();

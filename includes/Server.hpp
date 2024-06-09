@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <vector>
 #include <map>
+#include "Bot.hpp"
 #include "Client.hpp"
 #include <poll.h>
 #include <sys/poll.h>
@@ -70,6 +71,10 @@ class server {
 		std::vector <client> clients;
 		std::map<int, std::string> read_buffer;
 		std::vector <channel> channels;
+
+		/* adding the bot so the server can send message to the bot directly; */
+		Bot bot;
+	
 	public:
 		server(int p, std::string pass);
 		~server();
