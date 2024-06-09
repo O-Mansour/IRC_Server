@@ -217,33 +217,42 @@ void server::check_nickname(std::vector<std::string>& command, client& clt){
 
 void server::check_username(std::vector<std::string>& command, client& clt, std::string &line) {
 	if (command.size() < 5)
-		send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
+		return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
 	else if (clt.authentication[2])
-		send_reply(clt.getFd(), ERR_ALREADYREGISTERED(clt.getNickname()));
+		return send_reply(clt.getFd(), ERR_ALREADYREGISTERED(clt.getNickname()));
 	else if(command[2].compare("0") || command[3].compare("*"))
-		send_reply(clt.getFd(), ERR_USERFORMAT());
+		return send_reply(clt.getFd(), ERR_USERFORMAT());
 	else if (command[4].at(0) != ':')
-		send_reply(clt.getFd(), ERR_USERSYNTAX());
+		return send_reply(clt.getFd(), ERR_USERSYNTAX());
 	else{
 		if (command.size() == 5){
 			clt.setUsername(command[1]);
-			if (command[4].size() < 2){
-				send_reply(clt.getFd(), ERR_USERSYNTAX());	
-				return ;
-			}
+			if (command[4].size() < 2)
+				return send_reply(clt.getFd(), ERR_USERSYNTAX());	
 			clt.setFullname(command[4].substr(1));
 			clt.authentication[2] = true;
 		}
 		else{
+				// it looks a repetition
 				clt.setUsername(command[1]);
-				if (command[4].size() < 2){
-					send_reply(clt.getFd(), ERR_USERSYNTAX());	
-					return ;
-				}
+				if (command[4].size() < 2)
+					return send_reply(clt.getFd(), ERR_USERSYNTAX());
 				line = extract_param(command, line, 4);
 				clt.setFullname(line);
 				clt.authentication[2] = true;
-			}
+		}
+		std::string one = ":localhost.irc.com 001 "+ clt.getNickname() +" :Welcome to the LEET Network4, " + clt.getNickname() + "\r\n";
+		std::string two = ":localhost.irc.com 002 IRSSI :Your host is localhost, running version 1.0\r\n";
+		std::string three = ":localhost.irc.com 003 IRSSI :This server was created Sun Jun 09 17:19:15 2024\r\n";
+		std::string four = ":localhost.irc.com 004 IRSSI localhost 1.0 CHANTYPES=#\r\n";
+		std::string five = ":localhost.irc.com 005 CHANTYPES=# NICKLEN=16 CASEMAPPING=rfc1459 CHANMODES=k,l,it MODES=1 :are supported\r\n";
+		std::string motd = ":localhost.irc.com 422 IRSSI :MOTD is missing\r\n";
+		send_reply(clt.getFd(), one);
+		send_reply(clt.getFd(), two);
+		send_reply(clt.getFd(), three);
+		send_reply(clt.getFd(), four);
+		send_reply(clt.getFd(), five);
+		send_reply(clt.getFd(), motd);
 	}
 }
 
@@ -561,12 +570,8 @@ void server::send_pong(std::vector<std::string> &command, client &clt)
 	if (command.size() < 2 || command[1].empty())
 		send_reply(clt.getFd(), (ERR_NEEDMOREPARAMS()));
 	else
-	{
-		std::string pong = "PONG " + std::string(SERVER_NAME) + command[1] + "\r\n";
-		send(clt.getFd(), pong.c_str(), pong.length(), 0);
-	}
+		send_reply(clt.getFd(), "PONG " + std::string(SERVER_NAME) + " " + command[1] + "\r\n");
 }
-
 
 void server::channel_cmds(std::string line, client& clt)
 {
@@ -595,6 +600,8 @@ void server::execute_cmds(client& clt)
 	while ((pos = read_buffer[clt.getFd()].find("\n")) != std::string::npos)
 	{
 		line = read_buffer[clt.getFd()].substr(0, pos);
+		std::cout << YELLOW << "line to parse : " << RESET;
+		std::cout << line << std::endl;
 		if (!line.empty() && line.compare("\r") != 0)
 		{
 			authenticate_cmds(line, clt);
