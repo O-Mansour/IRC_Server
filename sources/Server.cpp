@@ -178,7 +178,6 @@ int ValidNick(std::string &str){
 	return 1;
 }
 
-
 void server::check_nickname(std::vector<std::string>& command, client& clt){
 	std::string reply;
 	if (command.size() != 2 && command.size() != 3)
@@ -557,6 +556,18 @@ void server::do_mode(std::vector<std::string> &command, client &clt)
 	}
 }
 
+void server::send_pong(std::vector<std::string> &command, client &clt)
+{
+	if (command.size() < 2 || command[1].empty())
+		send_reply(clt.getFd(), (ERR_NEEDMOREPARAMS()));
+	else
+	{
+		std::string pong = "PONG " + std::string(SERVER_NAME) + command[1] + "\r\n";
+		send(clt.getFd(), pong.c_str(), pong.length(), 0);
+	}
+}
+
+
 void server::channel_cmds(std::string line, client& clt)
 {
 	std::vector<std::string> command = split_line(line);
@@ -572,6 +583,8 @@ void server::channel_cmds(std::string line, client& clt)
 		do_kick(command, clt);
 	else if (!command[0].compare("/MODE"))
 		do_mode(command, clt);
+	else if (!command[0].compare("PING"))
+		send_pong(command, clt);
 }
 
 void server::execute_cmds(client& clt)
