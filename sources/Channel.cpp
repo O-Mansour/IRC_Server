@@ -4,6 +4,7 @@
 
 channel::channel(std::string n, std::string opr) : name(n), userLimit(0)
 {
+	this->isBotJoined = false;
 	this->size = 0;
 	for (int i = 0; i < 4; i++)
 		c_modes[i] = false;
@@ -135,6 +136,19 @@ void channel::c_privmsg(client &clt, std::string key){
 	}
 }
 
+void channel::msgToAllMemebers(std::string nickname, std::string key){
+	for (size_t i = 0; i < clients.size(); i++){
+		std::stringstream ss;
+		ss << UNDERLINE << "New message from " << nickname << " :" << RESET << std::endl;
+		write(clients[i].getFd(), ss.str().c_str(), ss.str().size());
+		write(clients[i].getFd(), "#", 1);
+		write(clients[i].getFd(), this->getName().c_str(), this->getName().size());
+		write (clients[i].getFd(), " : ", 3);
+		write(clients[i].getFd(), key.c_str(), key.size());
+		write(clients[i].getFd(), "\n", 1);
+	}
+}
+
 int channel::kick_user(std::string &key){
 	for (size_t i = 0; i < clients.size(); i++){
 		if (!clients[i].getNickname().compare(key))
@@ -159,3 +173,8 @@ int channel::user_fd(std::string &key){
 	}
 	return -1;
 }
+
+// getters and setter for bot
+bool channel::getIsBotJoined() const { return this->isBotJoined; }
+
+void channel::setIsBotJoined(bool val) { this->isBotJoined = val; }

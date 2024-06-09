@@ -33,6 +33,8 @@ class channel {
 		std::vector <client> clients;
 		size_t size;
 		std::vector <std::string> operators;
+
+		bool isBotJoined;
 	public:
 		channel(std::string n, std::string opr);
 		~channel();
@@ -46,6 +48,7 @@ class channel {
 		//cmds :
 		void c_join(client &clt, std::string key);
 		void c_privmsg(client &clt, std::string key);
+		void msgToAllMemebers(std::string nickname, std::string key);
 		int kick_user(std::string &key);
 		int remove_user(std::string &key);
 		int user_fd(std::string &key);
@@ -56,4 +59,8 @@ class channel {
 		void		addAsOperator(std::string nick);
 		void		eraseOperator(std::string nick);
 		bool		isOperator(std::string nick);
+
+		// setters and getter for bot
+		void setIsBotJoined(bool val);
+		bool getIsBotJoined() const;
 };

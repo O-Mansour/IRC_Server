@@ -1,4 +1,5 @@
 #include "../includes/Server.hpp"
+#include "Bot.hpp"
 #include <cstddef>
 #include <cstring>
 #include <iostream>
@@ -7,7 +8,7 @@
 #include <sys/types.h>
 #include <vector>
 
-server::server(int p, std::string pass) : port(p), password(pass)
+server::server(int p, std::string pass) : port(p), password(pass), bot("lhaj", "lhaj Molshi", "lhaj")
 {
 	//creating a simple tcp server
 	if ((this->s_socket = socket(AF_INET, SOCK_STREAM, 0)) == NOT_VALID)
@@ -143,6 +144,14 @@ void server::check_nickname(std::vector<std::string>& command, client& clt){
 		std::cout << YELLOW << "You already assigned a nickname" << RESET << std::endl;
 	else {
 		bool nickAvailable = true;
+
+		// checking if the nickname for the bot;
+		if (!command[1].compare(this->bot.getNickname()))
+		{
+			nickAvailable = false;
+			std::cout << YELLOW << "nickname is already used, Please try another one" << RESET << std::endl;
+			return;
+		}
 		for (size_t i = 0; i < clients.size(); i++) {
 			if (!clients[i].getNickname().compare(command[1]))
 			{
@@ -264,18 +273,32 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt, std::str
 				{
 					line = extract_param(command, line, 2);
 					channels[i].c_privmsg(clt, line);
+					// TODO: if the bot joined channel. check forward messages to bot
+					if (channels[i].getIsBotJoined())
+					{
+						this->bot.setMessage(line);
+						channels[i].msgToAllMemebers(this->bot.getNickname(), this->bot.getResponse());
+					}
 				}
 			}
 		}
 		else{
 			line = extract_param(command, line, 2);
-			for (size_t i = 0; i < clients.size(); i++){
-				if (!clients[i].getNickname().compare(command[1])){
-					std::stringstream ss;
-					ss << UNDERLINE << "New message from " << clt.getNickname() << " :" << RESET << std::endl;
-					write(clients[i].getFd(), ss.str().c_str(), ss.str().size());
-					write(clients[i].getFd(), line.c_str(), line.size());
-					write(clients[i].getFd(), "\n", 1);
+			// checking for bot, and forward message to bot
+			if (!command[1].compare(this->bot.getNickname()))
+			{
+				this->bot.setMessage(line);
+			}
+			else 
+			{
+				for (size_t i = 0; i < clients.size(); i++){
+					if (!clients[i].getNickname().compare(command[1])){
+						std::stringstream ss;
+						ss << UNDERLINE << "New message from " << clt.getNickname() << " :" << RESET << std::endl;
+						write(clients[i].getFd(), ss.str().c_str(), ss.str().size());
+						write(clients[i].getFd(), line.c_str(), line.size());
+						write(clients[i].getFd(), "\n", 1);
+					}
 				}
 			}
 		}
@@ -296,6 +319,9 @@ void server::do_invite(std::vector<std::string> &command, client &clt){
 			if (!clients[i].getNickname().compare(command[1])){
 				user_exist = true;
 				fd = clients[i].getFd();
+			} else if (!this->bot.getNickname().compare(command[1])) // checking also for bot name
+			{
+				user_exist = true;
 			}
 		}
 		if (!user_exist){
@@ -310,8 +336,19 @@ void server::do_invite(std::vector<std::string> &command, client &clt){
 			std::cout << "This channel : " << command[2] << " doesn't exist" << std::endl;
 			return ;
 		}
-		for (size_t i = 0; i < channels.size(); i++){
-			if (channels[i].getCltFd(clt.getFd()))
+		for (size_t i = 0; i < channels.size(); i++) {
+			if (!this->bot.getNickname().compare(command[1]) && !channels[i].getIsBotJoined()) // adding the bot to the channel
+			{
+				std::cout << "adding bot to channel " << std::endl;
+				clt_part_in_it = true;
+				channels[i].setIsBotJoined(true);
+			}
+			else if (!this->bot.getNickname().compare(command[1]) && channels[i].getIsBotJoined()) {
+				std::cout << RED << "The Bot already joined this channel : " << command[2] << RESET << std::endl;
+				write(fd, ss.str().c_str(), ss.str().size());
+				return ;
+			}
+			if (channels[i].getCltFd(clt.getFd())) // checking if the bot is not in the channel already
 				clt_part_in_it = true;
 			if (channels[i].getCltFd(fd)){
 				ss << RED << "You already joined this channel : " << command[2] << RESET << std::endl;
@@ -562,4 +599,3 @@ void print_ft_irc(){
 	std::cout << GREEN << "╚═╝        ╚═╝╚══════╝╚═╝╚═╝  ╚═╝ ╚═════╝" << RESET << std::endl;
 	std::cout << GREEN << "                                         " << RESET << std::endl;
 }
-
