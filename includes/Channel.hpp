@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Client.hpp"
+#include "Server.hpp"
 #include <cstring>
 #include <iostream>
 #include <unistd.h>
@@ -28,9 +29,9 @@ private:
   std::string topic;
   std::string key;
   size_t userLimit;
-  size_t size; // ??
+  size_t size;
   std::vector<client> clients;
-  std::vector<std::string> operators;
+  std::vector<std::string> operators; // nickname may not works
 
   bool isBotJoined;
 
@@ -41,7 +42,6 @@ public:
   std::string getName() const;
   std::string getTopic() const;
   void setTopic(const std::string t);
-  void setSize();
   size_t getSize();
   bool getCltFd(int fd);
   void c_join(client &clt, std::string key);
@@ -56,7 +56,8 @@ public:
   void setKey(const std::string t);
   void addAsOperator(std::string nick);
   void eraseOperator(std::string nick);
-  bool isOperator(std::string nick);
+  bool isOperator(std::string nick) const;
+  std::string getClientsList() const;
 
   // setters and getter for bot
   void setIsBotJoined(bool val);

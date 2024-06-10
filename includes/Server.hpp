@@ -44,6 +44,14 @@
 #define ERR_USERFORMAT() (UNDERLINE "localhost: Please set the second parameter with <0> and the third with <*>\r\n" RESET)
 #define ERR_USERSYNTAX() (RED "localhost: Please use this syntax : USER <username> 0 * :<realname>\r\n" RESET)
 
+//JOIN :
+# define ERR_BADCHANNELKEY(nick, channel) (":localhost 475 " + nick + " #" + channel + " :Cannot join channel (+k)\r\n")
+# define RPL_JOIN(nick, channel) (":" + nick + "@localhost JOIN :#" +  channel + "\r\n")
+# define RPL_TOPIC(nick, channel, topic) (":localhost 332 " + nick + " #" + channel + " :" + topic + "\r\n")
+# define RPL_NAMREPLY(nick, channel, nicks_list) (":localhost 353 " + nick + " = #" + channel + " :" + nicks_list + "\r\n")
+# define RPL_ENDOFNAMES(nick, channel) (":localhost 366 " + nick + " #" + channel + " :End of /NAMES list\r\n")
+# define ERR_INVITEONLYCHAN(nick, channel) (":localhost 473 " + nick + " #" + channel + " :Cannot join channel (+i)\r\n")
+# define ERR_CHANNELISFULL(nick, channel) (":localhost 471 " + nick + " #" + channel + " :Cannot join channel (+l)\r\n")
 
 
 //==========Macros===============
@@ -60,6 +68,8 @@
 #define GREEN "\033[1;32m"
 #define UNDERLINE "\033[4;37m"
 #define BOLD "\033\e[1m"
+
+class channel;
 
 //==========Classes==============
 class server {
@@ -85,7 +95,6 @@ class server {
 		void execute_cmds(client& clt);
 		void authenticate_cmds(std::string line, client& clt);
 		void check_password(std::vector<std::string> &command, client& clt);
-		void send_reply(int fd, std::string str);
 		void check_nickname(std::vector<std::string> &command, client& clt);
 		void check_username(std::vector<std::string>& command, client& clt, std::string &line);
 		void channel_cmds(std::string line, client& clt);
@@ -97,6 +106,8 @@ class server {
 		void do_mode(std::vector<std::string> &command, client &clt);
 		void send_pong(std::vector<std::string> &command, client &clt);
 };
+
+void send_reply(int fd, std::string str);
 
 void print_time();
 void print_ft_irc();

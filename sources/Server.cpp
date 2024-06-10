@@ -74,7 +74,7 @@ void server::deleteClientData(client &clt) {
   close(clt.getFd());
 }
 
-void server::send_reply(int fd, std::string str) {
+void  send_reply(int fd, std::string str) {
   send(fd, str.c_str(), str.length(), 0);
 }
 
@@ -277,30 +277,72 @@ void server::authenticate_cmds(std::string line, client &clt) {
   }
 }
 
-void server::do_join(std::vector<std::string> &command, client &clt) {
-  if ((command.size() != 2 && command.size() != 3) || command[1].at(0) != '#')
-    std::cout << "args are invalid" << std::endl;
-  else {
-    command[1].erase(0, 1);
-    bool channelAvailable = false;
-    std::string c_key;
-    if (command.size() == 3)
-      c_key = command[2];
+std::vector<std::string> tmp_split(std::string line, std::string delim) {
+  std::vector<std::string> res;
+  char *buff = new char[line.size() + 1];
+  char *word;
+
+  buff = std::strcpy(buff, line.c_str());
+  word = std::strtok(buff, delim.c_str());
+  while (word) {
+    res.push_back(word);
+    word = std::strtok(NULL, delim.c_str());
+  }
+  delete[] buff;
+  return res;
+}
+
+void server::do_join(std::vector<std::string> &command, client &clt)
+{
+  if (command.size() < 2)
+    return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
+  // "JOIN 0" to leave all channels
+  if (!command[1].compare("0"))
+  {
     for (size_t i = 0; i < channels.size(); i++) {
-      if (!channels[i].getName().compare(command[1])) {
-        channelAvailable = true;
-        channels[i].c_join(clt, c_key);
-        channels[i].setSize();
-        std::cout << "user has joined the channel" << std::endl;
+      int uIndex = channels[i].getUserIndex(clt.getNickname());
+      if (uIndex != NOT_VALID)
+        channels[i].remove_user(uIndex, clt.getNickname());
+    }
+    return ;
+  }
+  std::vector<std::string> chan_list = tmp_split(command[1], ",");
+  std::vector<std::string> keys_list;
+  if (command.size() > 2)
+    keys_list = tmp_split(command[2], ",");
+  for (size_t i = 0; i < chan_list.size(); i++) {
+    if (chan_list[i].at(0) != '#')
+    {
+      send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
+      continue ;
+    }
+    chan_list[i].erase(0, 1);
+    if (chan_list[i].length() == 0)
+    {
+      send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
+      continue ;
+    }
+    std::string c_key = "";
+    if (keys_list.size() > i)
+      c_key = keys_list[i];
+    size_t j;
+    for (j = 0; j < channels.size(); j++) {
+      if (!channels[j].getName().compare(chan_list[i])) {
+        // check channel modes
+        if (channels[j].c_modes[INVITE_ONLY_M])
+          send_reply(clt.getFd(), ERR_INVITEONLYCHAN(clt.getNickname(), chan_list[i]));
+        else if (channels[j].c_modes[USER_LIMIT_M] && channels[j].getSize() == channels[j].getUserLimit())
+          send_reply(clt.getFd(), ERR_CHANNELISFULL(clt.getNickname(), chan_list[i]));
+        else
+          channels[j].c_join(clt, c_key);
         break;
       }
     }
-    if (!channelAvailable) {
+    if (j == channels.size()) {
       // create channel and add the user to it
-      channel cnl(command[1], clt.getNickname());
-      cnl.c_join(clt, "");
-      cnl.setSize();
-      channels.push_back(cnl);
+      channel chnl(chan_list[i], clt.getNickname());
+      chnl.c_join(clt, "");
+      channels.push_back(chnl);
     }
   }
 }
@@ -581,13 +623,8 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
 void server::send_pong(std::vector<std::string> &command, client &clt) {
   if (command.size() < 2 || command[1].empty())
     send_reply(clt.getFd(), (ERR_NEEDMOREPARAMS()));
-  else {
-    std::string pong =
-        "PONG " + std::string(SERVER_NAME) + " " + command[1] + "\r\n";
-    send(clt.getFd(), pong.c_str(), pong.length(), 0);
-  }
-  send_reply(clt.getFd(),
-             "PONG " + std::string(SERVER_NAME) + " " + command[1] + "\r\n");
+  else
+    send_reply(clt.getFd(), "PONG " + std::string(SERVER_NAME) + " " + command[1] + "\r\n");
 }
 
 void server::channel_cmds(std::string line, client &clt) {
@@ -606,6 +643,7 @@ void server::channel_cmds(std::string line, client &clt) {
     do_mode(command, clt);
   else if (!command[0].compare("PING"))
     send_pong(command, clt);
+  // unknown cmds reply 421
 }
 
 void server::execute_cmds(client &clt) {
