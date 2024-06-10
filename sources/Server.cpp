@@ -169,91 +169,61 @@ int ValidNick(std::string &str) {
 
 void server::check_nickname(std::vector<std::string> &command, client &clt) {
   std::string reply;
-  if (command.size() != 2 && command.size() != 3)
+  if (command.size() != 2)
     send_reply(clt.getFd(), ERR_NONICKNAMEGIVEN(clt.getNickname()));
   else if (!ValidNick(command[1]))
     send_reply(clt.getFd(), ERR_ERRONEUSNICKNAME());
-  else if (command.size() == 3) {
-    if (!ValidNick(command[2]))
-      send_reply(clt.getFd(), ERR_ERRONEUSNICKNAME());
-    else if (clt.authentication[1]) {
-      if (!clt.getNickname().compare(command[1])) {
-        clt.setNickname(command[2]);
-        send_reply(clt.getFd(), ERR_NICKNAMECHANGE(command[1], command[2]));
-      } else
-        send_reply(clt.getFd(), ERR_NICKNAMEINVALID(command[1]));
-    } else
-      send_reply(clt.getFd(), ERR_NICKNAMEFIRST());
+  else if (!command[1].compare(this->bot.getNickname())) {
+    send_reply(clt.getFd(), ERR_NICKNAMEINVALID(command[1]));
   } else {
     size_t i;
-    // checking if the nickname for the bot;
-    if (!command[1].compare(this->bot.getNickname())) {
-      std::cout << YELLOW << "nickname is already used, Please try another one"
-                << RESET << std::endl;
-      return;
-    }
     for (i = 0; i < clients.size(); i++) {
-      if (!clients[i].getNickname().compare(command[1])) {
+      if (!clients[i].getNickname().compare(command[1]) &&
+          !clients[i].authentication[1]) {
         send_reply(clt.getFd(),
                    ERR_NICKNAMEINUSE(clt.getNickname(), command[1]));
         break;
       }
     }
     if (i == clients.size()) {
-      clt.setNickname(command[1]);
-      clt.authentication[1] = true;
+      if (clt.authentication[1]) {
+        send_reply(clt.getFd(),
+                   ERR_NICKNAMECHANGE(clt.getNickname(), command[1]));
+        clt.setNickname(command[1]);
+      } else {
+        clt.setNickname(command[1]);
+        clt.authentication[1] = true;
+      }
     }
   }
+}
+
+void server::register_user(client &clt) {
+  send_reply(clt.getFd(), RPL_WELCOME());
+  send_reply(clt.getFd(), RPL_YOURHOST());
+  send_reply(clt.getFd(), RPL_CREATED());
+  send_reply(clt.getFd(), RPL_MYINFO());
+  send_reply(clt.getFd(), RPL_ISUPPORT());
 }
 
 void server::check_username(std::vector<std::string> &command, client &clt,
                             std::string &line) {
   if (command.size() < 5)
     return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
-  else if (clt.authentication[2]) {
-    send_reply(clt.getFd(), ERR_ALREADYREGISTERED(clt.getNickname()));
-    return;
-  } else if (clt.authentication[2])
+  else if (clt.authentication[2])
     return send_reply(clt.getFd(), ERR_ALREADYREGISTERED(clt.getNickname()));
   else if (command[2].compare("0") || command[3].compare("*"))
     return send_reply(clt.getFd(), ERR_USERFORMAT());
   else if (command[4].at(0) != ':')
     return send_reply(clt.getFd(), ERR_USERSYNTAX());
   else {
-    if (command.size() == 5) {
-      clt.setUsername(command[1]);
-      if (command[4].size() < 2)
-        return send_reply(clt.getFd(), ERR_USERSYNTAX());
-      clt.setFullname(command[4].substr(1));
-      clt.authentication[2] = true;
-    } else {
-      // it looks a repetition
-      clt.setUsername(command[1]);
-      if (command[4].size() < 2)
-        return send_reply(clt.getFd(), ERR_USERSYNTAX());
-      line = extract_param(command, line, 4);
-      clt.setFullname(line);
-      clt.authentication[2] = true;
-    }
-    std::string one = ":localhost.irc.com 001 " + clt.getNickname() +
-                      " :Welcome to the LEET Network4, " + clt.getNickname() +
-                      "\r\n";
-    std::string two = ":localhost.irc.com 002 IRSSI :Your host is localhost, "
-                      "running version 1.0\r\n";
-    std::string three = ":localhost.irc.com 003 IRSSI :This server was created "
-                        "Sun Jun 09 17:19:15 2024\r\n";
-    std::string four =
-        ":localhost.irc.com 004 IRSSI localhost 1.0 CHANTYPES=#\r\n";
-    std::string five =
-        ":localhost.irc.com 005 CHANTYPES=# NICKLEN=16 CASEMAPPING=rfc1459 "
-        "CHANMODES=k,l,it :are supported\r\n";
-    // std::string motd = ":localhost.irc.com 422 IRSSI :MOTD is missing\r\n";
-    send_reply(clt.getFd(), one);
-    send_reply(clt.getFd(), two);
-    send_reply(clt.getFd(), three);
-    send_reply(clt.getFd(), four);
-    send_reply(clt.getFd(), five);
-    // send_reply(clt.getFd(), motd);
+    if (command[4].length() < 2)
+      return send_reply(clt.getFd(), ERR_USERSYNTAX());
+    clt.setUsername(command[1]);
+    line = extract_param(command, line, 4);
+    clt.setFullname(line);
+    clt.authentication[2] = true;
+    register_user(clt);
   }
 }
 
@@ -264,17 +234,13 @@ void server::authenticate_cmds(std::string line, client &clt) {
     check_password(command, clt);
   if (!command[0].compare("NICK") && clt.authentication[0])
     check_nickname(command, clt);
-  else if (!command[0].compare("NICK")) {
-    reply = ERR_NEEDMOREPARAMS();
-    send(clt.getFd(), reply.c_str(), reply.length(), 0);
-  }
+  else if (!command[0].compare("NICK"))
+    send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
   if (!command[0].compare("USER") && clt.authentication[0] &&
       clt.authentication[1])
     check_username(command, clt, line);
-  else if (!command[0].compare("USER")) {
-    reply = ERR_NEEDMOREPARAMS();
-    send(clt.getFd(), reply.c_str(), reply.length(), 0);
-  }
+  else if (!command[0].compare("USER"))
+    send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
 }
 
 void server::do_join(std::vector<std::string> &command, client &clt) {
@@ -307,19 +273,16 @@ void server::do_join(std::vector<std::string> &command, client &clt) {
 
 void server::do_privmsg(std::vector<std::string> &command, client &clt,
                         std::string line) {
-  if (command.size() < 3) {
-    std::cout << RED << "args are invalid, Use this syntax" << RESET
-              << std::endl;
-    std::cout << UNDERLINE << "\t PRIVMSG <channel/user nickname> :<message>"
-              << RESET << std::endl;
-  } else if (command[2].at(0) != ':')
-    std::cout << RED << "Not valid syntax" << RESET << std::endl;
+  if (command.size() < 3)
+    send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
+  else if (command[2].at(0) != ':')
+    send_reply(clt.getFd(), ERR_MSGSYNTAX());
   else {
     if (command[1].at(0) == '#') {
       command[1].erase(0, 1);
+      line = extract_param(command, line, 2);
       for (size_t i = 0; i < channels.size(); i++) {
         if (!channels[i].getName().compare(command[1])) {
-          line = extract_param(command, line, 2);
           channels[i].c_privmsg(clt, line);
           // TODO: if the bot joined channel. check forward messages to bot
           if (channels[i].getIsBotJoined()) {
@@ -335,14 +298,11 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
       if (!command[1].compare(this->bot.getNickname())) {
         this->bot.setMessage(line);
       } else {
+        std::string msg_str = ":" + clt.getNickname() + " ";
         for (size_t i = 0; i < clients.size(); i++) {
-          if (!clients[i].getNickname().compare(command[1])) {
-            std::stringstream ss;
-            ss << UNDERLINE << "New message from " << clt.getNickname() << " :"
-               << RESET << std::endl;
-            write(clients[i].getFd(), ss.str().c_str(), ss.str().size());
-            write(clients[i].getFd(), line.c_str(), line.size());
-            write(clients[i].getFd(), "\n", 1);
+          if (!command[1].compare(clients[i].getNickname())) {
+            msg_str += clients[i].getNickname() + ": " + line + "\n";
+            write(clients[i].getFd(), msg_str.c_str(), msg_str.length());
           }
         }
       }
@@ -401,8 +361,8 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
         write(fd, ss.str().c_str(), ss.str().size());
         return;
       }
-      if (channels[i].getCltFd(
-              clt.getFd())) // checking if the bot is not in the channel already
+      if (channels[i].getCltFd(clt.getFd())) // checking if the bot is not in
+                                             // the channel already
         clt_part_in_it = true;
       if (channels[i].getCltFd(fd)) {
         ss << RED << "You already joined this channel : " << command[2] << RESET
@@ -624,6 +584,20 @@ void server::execute_cmds(client &clt) {
     }
     read_buffer[clt.getFd()].erase(0, pos + 1);
   }
+}
+
+std::string print_time_welcome() {
+  std::time_t currentTime = std::time(NULL);
+  std::tm *localTime = std::localtime(&currentTime);
+  std::stringstream ss;
+
+  ss << "[" << std::setw(4) << localTime->tm_year + 1900 << "-" << std::setw(2)
+     << std::setfill('0') << localTime->tm_mon + 1 << "-" << std::setw(2)
+     << std::setfill('0') << localTime->tm_mday << " " << std::setw(2)
+     << std::setfill('0') << localTime->tm_hour << ":" << std::setw(2)
+     << std::setfill('0') << localTime->tm_min << ":" << std::setw(2)
+     << std::setfill('0') << localTime->tm_sec << "]" << std::endl;
+  return ss.str();
 }
 
 void print_time() {
