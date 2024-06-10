@@ -14,8 +14,8 @@
 ### Notes
 
 ## Todo (BOT)
-- [ ] => implment inviting the bot to a channel. `(working on)`
-- [ ] => getting Moderator role
+- [x] => implment inviting the bot to a channel.
+- [x] => getting Moderator role
 - [ ] => listen for bad words.
 - [ ] => kick users and reply with reseaon
 - [ ] => !help shows available commands

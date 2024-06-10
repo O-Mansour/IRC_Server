@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 /* lhaj:
  * Lhaj is an Irc bot that can be invited to a channel
@@ -10,22 +11,24 @@
 
 class Bot {
 private:
-	std::string fullname;
-	std::string username;
-	std::string nickname;
-
-	std::string message;
+  std::string fullname;
+  std::string username;
+  std::string nickname;
+  std::string message;
+  std::string res;
+  std::vector<std::string> msgWords;
 
 public:
-	Bot(std::string nickname, std::string username, std::string fullname);
-	~Bot();
+  Bot(std::string nickname, std::string username, std::string fullname);
+  ~Bot();
 
-	void handleMessage();
-	void setMessage(std::string message);
-	std::string getResponse();
+  void handleMessage();
+  void setMessage(std::string message);
+  std::string getResponse(std::string channelName);
+  bool parseMessage();
 
-	// getters
-	std::string getNickname() const;
-	std::string getFullname() const;
-	std::string getUsername() const;
+  // getters
+  std::string getNickname() const;
+  std::string getFullname() const;
+  std::string getUsername() const;
 };

@@ -287,8 +287,10 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
           // TODO: if the bot joined channel. check forward messages to bot
           if (channels[i].getIsBotJoined()) {
             this->bot.setMessage(line);
-            channels[i].msgToAllMemebers(this->bot.getNickname(),
-                                         this->bot.getResponse());
+            std::string msg = this->bot.getResponse(channels[i].getName());
+            if (msg != "-1")
+              channels[i].msgToAllMemebers(msg);
+            return;
           }
         }
       }
