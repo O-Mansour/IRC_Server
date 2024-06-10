@@ -47,7 +47,7 @@ public:
   void c_join(client &clt, std::string key);
   void c_privmsg(client &clt, std::string key);
   int getUserIndex(const std::string &nick);
-  void msgToAllMemebers(std::string nickname, std::string key);
+  void msgToAllMemebers(std::string key);
   void remove_user(int index, const std::string &nick);
   int user_fd(std::string &key);
   size_t getUserLimit() const;
