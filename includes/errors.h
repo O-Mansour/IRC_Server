@@ -3,8 +3,9 @@
 //=========Errors===============
 // Welcome
 
-#define RPL_WELCOME()                                                          \
-  (":localhost.irc.com 001 IRSSI :Welcome to the Internet Relay Network \r\n")
+#define RPL_WELCOME(client)                                                    \
+  (":localhost.irc.com 001 " + client +                                        \
+   " :Welcome to the Internet Relay Network \r\n")
 #define RPL_YOURHOST()                                                         \
   (":localhost.irc.com 002 IRSSI :Your host is localhost, running version "    \
    "1.0\r\n")
@@ -48,3 +49,5 @@
 #define ERR_MSGSYNTAX()                                                        \
   (RED "localhost: Please use this syntax : PRIVMSG <channel/user> "           \
        ":<your_msg_here>" RESET "\r\n")
+#define ERR_NOSUCHNICK() (RED "No such nick" RESET "\r\n")
+#define ERR_NOSUCHCHANNEL() (RED "No such channel" RESET "\r\n")

@@ -199,7 +199,7 @@ void server::check_nickname(std::vector<std::string> &command, client &clt) {
 }
 
 void server::register_user(client &clt) {
-  send_reply(clt.getFd(), RPL_WELCOME());
+  send_reply(clt.getFd(), RPL_WELCOME(clt.getNickname()));
   send_reply(clt.getFd(), RPL_YOURHOST());
   send_reply(clt.getFd(), RPL_CREATED());
   send_reply(clt.getFd(), RPL_MYINFO());
@@ -278,10 +278,11 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
   else if (command[2].at(0) != ':')
     send_reply(clt.getFd(), ERR_MSGSYNTAX());
   else {
+    size_t i;
     if (command[1].at(0) == '#') {
       command[1].erase(0, 1);
       line = extract_param(command, line, 2);
-      for (size_t i = 0; i < channels.size(); i++) {
+      for (i = 0; i < channels.size(); i++) {
         if (!channels[i].getName().compare(command[1])) {
           channels[i].c_privmsg(clt, line);
           // TODO: if the bot joined channel. check forward messages to bot
@@ -293,6 +294,8 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
             return;
           }
         }
+        if (i == clients.size())
+          send_reply(clt.getFd(), ERR_NOSUCHCHANNEL());
       }
     } else {
       line = extract_param(command, line, 2);
@@ -300,13 +303,18 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
       if (!command[1].compare(this->bot.getNickname())) {
         this->bot.setMessage(line);
       } else {
-        std::string msg_str = ":" + clt.getNickname() + " ";
-        for (size_t i = 0; i < clients.size(); i++) {
+        std::string msg_str =
+            ":" + clt.getNickname() + "!~h@localhost PRIVMSG ";
+        for (i = 0; i < clients.size(); i++) {
           if (!command[1].compare(clients[i].getNickname())) {
-            msg_str += clients[i].getNickname() + ": " + line + "\n";
+            std::string target = clients[i].getNickname();
+            msg_str += target + " :" + line + "\n";
             write(clients[i].getFd(), msg_str.c_str(), msg_str.length());
+            break;
           }
         }
+        if (i == clients.size())
+          send_reply(clt.getFd(), ERR_NOSUCHNICK());
       }
     }
   }
@@ -353,7 +361,6 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
           !channels[i].getIsBotJoined()) // adding the bot to the channel
       {
         std::cout << "adding bot to channel " << std::endl;
-        clt_part_in_it = true;
         channels[i].setIsBotJoined(true);
       } else if (!this->bot.getNickname().compare(command[1]) &&
                  channels[i].getIsBotJoined()) {
