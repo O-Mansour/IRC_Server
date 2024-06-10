@@ -82,6 +82,14 @@ bool channel::getCltFd(int fd) {
   return false;
 }
 
+bool channel::check_nickname(std::string str){
+	for (size_t i = 0; i < clients.size(); i++)
+		if (!str.compare(clients[i].getNickname()))
+			return true;
+	return false;
+}
+
+
 void channel::c_privmsg(client &clt, std::string key) {
   std::string msg_str = ":" + clt.getNickname() + "!~h@localhost PRIVMSG #" +
                         this->getName() + " :" + key + "\n";

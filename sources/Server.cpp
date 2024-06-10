@@ -208,7 +208,7 @@ void server::register_user(client &clt) {
 
 void server::check_username(std::vector<std::string> &command, client &clt,
                             std::string &line) {
-  if (command.size() < 5)
+  if (command.size() < 5 )
     return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
   else if (clt.authentication[2])
     return send_reply(clt.getFd(), ERR_ALREADYREGISTERED(clt.getNickname()));
@@ -323,8 +323,7 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
 void server::do_invite(std::vector<std::string> &command, client &clt) {
   std::stringstream ss;
   if (command.size() != 3)
-    std::cout << RED << "Syntax error : /INVITE <nickname> <channel>" << RESET
-              << std::endl;
+    send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
   else {
     bool channel_exist = false;
     bool clt_part_in_it = false;
@@ -335,15 +334,16 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
       if (!clients[i].getNickname().compare(command[1])) {
         user_exist = true;
         fd = clients[i].getFd();
-      } else if (!this->bot.getNickname().compare(
-                     command[1])) // checking also for bot name
-      {
-        user_exist = true;
       }
+      // add your own bool here
+      // } else if (!this->bot.getNickname().compare(
+      //                command[1])) // checking also for bot name
+      // {
+      //   user_exist = true;
+      // }
     }
     if (!user_exist) {
-      std::cout << "This user : " << command[1] << " doesn't exist"
-                << std::endl;
+      send_reply(clt.getFd(), ERR_NOSUCHNICK());
       return;
     }
     for (size_t i = 0; i < channels.size(); i++) {
@@ -352,45 +352,36 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
         channel_exist = true;
     }
     if (!channel_exist) {
-      std::cout << "This channel : " << command[2] << " doesn't exist"
-                << std::endl;
+      send_reply(clt.getFd(), ERR_NOSUCHCHANNEL());
       return;
     }
     for (size_t i = 0; i < channels.size(); i++) {
-      if (!this->bot.getNickname().compare(command[1]) &&
-          !channels[i].getIsBotJoined()) // adding the bot to the channel
-      {
-        std::cout << "adding bot to channel " << std::endl;
-        channels[i].setIsBotJoined(true);
-      } else if (!this->bot.getNickname().compare(command[1]) &&
-                 channels[i].getIsBotJoined()) {
-        std::cout << RED
-                  << "The Bot already joined this channel : " << command[2]
-                  << RESET << std::endl;
-        write(fd, ss.str().c_str(), ss.str().size());
+      // if (!this->bot.getNickname().compare(command[1]) &&
+      //     !channels[i].getIsBotJoined()) // adding the bot to the channel
+      // {
+      //   std::cout << "adding bot to channel " << std::endl;
+      //   channels[i].setIsBotJoined(true);
+      // } else if (!this->bot.getNickname().compare(command[1]) &&
+      //            channels[i].getIsBotJoined()) {
+      //   std::cout << RED
+      //             << "The Bot already joined this channel : " << command[2]
+      //             << RESET << std::endl;
+      //   write(fd, ss.str().c_str(), ss.str().size());
+      //   return;
+      // }
+      if (channels[i].check_nickname(command[1])) {
+        send_reply(clt.getFd(),ERR_USERONCHANNEL(command[1], command[2]));
+        return ;
+      }else if (channels[i].c_modes[INVITE_ONLY_M] && !channels[i].isOperator(clt.getNickname())) {
+				send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(command[1], command[2]));
         return;
-      }
-      if (channels[i].getCltFd(clt.getFd())) // checking if the bot is not in
-                                             // the channel already
-        clt_part_in_it = true;
-      if (channels[i].getCltFd(fd)) {
-        ss << RED << "You already joined this channel : " << command[2] << RESET
-           << std::endl;
-        write(fd, ss.str().c_str(), ss.str().size());
-        return;
-      } else if (channels[i].c_modes[INVITE_ONLY_M] == false) {
-        ss << RED << "This channel has INVITE_ONLY mode : " << command[2]
-           << RESET << std::endl;
-        write(fd, ss.str().c_str(), ss.str().size());
-        return;
-      }
+      }else if (channels[i].check_nickname(clt.getNickname()))
+				clt_part_in_it = true;
     }
     if (clt_part_in_it) {
-      ss << UNDERLINE << clt.getNickname() << " invite you to join "
-         << command[2] << " channel" << RESET << std::endl;
-      write(fd, ss.str().c_str(), ss.str().size());
+			send_reply(fd, RPL_INVITING(clt.getNickname(), command[1], command[2]));
     } else
-      std::cout << "you are not a part of this channel" << std::endl;
+				send_reply(clt.getFd(), ERR_NOTONCHANNEL(clt.getNickname(), command[2]));
   }
 }
 

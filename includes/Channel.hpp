@@ -57,7 +57,7 @@ public:
   void addAsOperator(std::string nick);
   void eraseOperator(std::string nick);
   bool isOperator(std::string nick);
-
+	bool check_nickname(std::string str);
   // setters and getter for bot
   void setIsBotJoined(bool val);
   bool getIsBotJoined() const;

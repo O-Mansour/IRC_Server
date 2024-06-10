@@ -51,3 +51,7 @@
        ":<your_msg_here>" RESET "\r\n")
 #define ERR_NOSUCHNICK() (RED "No such nick" RESET "\r\n")
 #define ERR_NOSUCHCHANNEL() (RED "No such channel" RESET "\r\n")
+#define ERR_USERONCHANNEL(client, channel)(RED + client + " is already on channel :#" + channel + RESET "\r\n")
+#define ERR_CHANOPRIVSNEEDED(client, channel)(RED + client + " " + channel + " :You're not channel operator" RESET "\r\n")
+#define RPL_INVITING(client,nick,channel) (":localhost 341 " + client + " " + nick + " #" + channel)
+#define ERR_NOTONCHANNEL(client,channel)(":localhost 442 " + client + " #" + channel + " :You're not on that channel")
