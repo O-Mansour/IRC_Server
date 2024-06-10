@@ -4,7 +4,6 @@
 
 channel::channel(std::string n, std::string opr) : name(n), userLimit(0) {
   this->isBotJoined = false;
-  this->size = 0;
   for (int i = 0; i < 4; i++)
     c_modes[i] = false;
   operators.push_back(opr);
@@ -18,9 +17,7 @@ std::string channel::getTopic() const { return topic; }
 
 void channel::setTopic(const std::string t) { topic = t; }
 
-void channel::setSize() { this->size += 1; }
-
-size_t channel::getSize() { return this->size; }
+size_t channel::getSize() { return clients.size(); }
 
 size_t channel::getUserLimit() const { return userLimit; }
 
@@ -52,8 +49,8 @@ void channel::eraseOperator(std::string nick) {
     std::cout << "client is not an operator" << std::endl;
 }
 
-bool channel::isOperator(std::string nick) {
-  std::vector<std::string>::iterator it;
+bool channel::isOperator(std::string nick) const {
+  std::vector<std::string>::const_iterator it;
   it = std::find(operators.begin(), operators.end(), nick);
   if (it != operators.end())
     return true;
@@ -64,15 +61,22 @@ void channel::c_join(client &clt, std::string k) {
   if (key.empty() || !this->key.compare(k)) {
     size_t i;
     for (i = 0; i < clients.size(); i++) {
-      if (clt.getFd() == clients[i].getFd()) {
-        std::cout << "Client has joined the channel already" << std::endl;
+      if (clt.getFd() == clients[i].getFd())
         break;
-      }
     }
     if (i == clients.size())
+    {
       clients.push_back(clt);
-  } else
-    std::cout << "Channel key incorrect" << std::endl;
+      send_reply(clt.getFd(), RPL_JOIN(clt.getNickname(), this->name));
+      if (!this->topic.empty())
+        send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), this->name, this->topic));
+      std::string clients_list = getClientsList();
+      send_reply(clt.getFd(), RPL_NAMREPLY(clt.getNickname(), this->name, clients_list));
+      send_reply(clt.getFd(), RPL_ENDOFNAMES(clt.getNickname(), this->name));
+    }
+  }
+  else
+    send_reply(clt.getFd(), ERR_BADCHANNELKEY(clt.getNickname(), this->name));
 }
 
 bool channel::getCltFd(int fd) {
@@ -121,13 +125,28 @@ void channel::remove_user(int index, const std::string &nick) {
     operators.erase(it);
 }
 
-int channel::user_fd(std::string &key) { // useless function ??
+int channel::user_fd(std::string &key) {
   for (size_t i = 0; i < clients.size(); i++) {
     if (!clients[i].getNickname().compare(key))
       return clients[i].getFd();
   }
   return -1;
 }
+
+std::string channel::getClientsList() const
+{
+  std::string res;
+  for (size_t i = 0; i < clients.size(); i++)
+  {
+    if (i != 0)
+      res += " ";
+    if (isOperator(clients[i].getNickname()))
+      res += "@";
+    res += clients[i].getNickname();
+  }
+  return res;
+}
+
 
 // getters and setter for bot
 bool channel::getIsBotJoined() const { return this->isBotJoined; }
