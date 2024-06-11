@@ -7,8 +7,10 @@ server constructServer(std::string port, std::string password)
 	if (port.length() > 5)
 		throw std::runtime_error("The port is invalid");
 	for (size_t i = 0; i < port.length(); i++)
+	{
 		if (!isdigit(port[i]))
 			throw std::runtime_error("The port contains non-digits");
+	}
 	unsigned int p = std::atoi(port.c_str());
 	if (p > MAX_UINT16 || p < RESERVED_PORTS)
 		throw std::runtime_error("The port is invalid");

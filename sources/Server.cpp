@@ -337,7 +337,7 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
           }
         }
         if (i == clients.size())
-          send_reply(clt.getFd(), ERR_NOSUCHCHANNEL());
+          send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
       }
     } else {
       line = extract_param(command, line, 2);
@@ -394,7 +394,7 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
         channel_exist = true;
     }
     if (!channel_exist) {
-      send_reply(clt.getFd(), ERR_NOSUCHCHANNEL());
+      send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
       return;
     }
     for (size_t i = 0; i < channels.size(); i++) {
@@ -501,82 +501,88 @@ void server::do_topic(std::vector<std::string> &command, client &clt,
   }
 }
 
-bool supported_mode(const std::string &mode) {
-  if (!mode.compare("+i") || !mode.compare("-i") || !mode.compare("+t") ||
-      !mode.compare("-t") || !mode.compare("+k") || !mode.compare("-k") ||
-      !mode.compare("+o") || !mode.compare("-o") || !mode.compare("+l") ||
-      !mode.compare("-l"))
-    return true;
-  return false;
+long isValidInteger(const std::string &str)
+{
+  if (str.empty() || str.length() > 10)
+    return 0;
+  for (size_t i = 0; i < str.length(); i++)
+  {
+		if (!isdigit(str[i]))
+			    return 0;
+  }
+  long res = std::atol(str.c_str());
+	if (res > INT_MAX || res < 0)
+    return 0;
+  return res;
 }
 
 void server::do_mode(std::vector<std::string> &command, client &clt) {
-  if ((command.size() != 3 && command.size() != 4) || command[1].at(0) != '#' ||
-      !supported_mode(command[2]))
-    std::cout << "args are invalid" << std::endl;
-  else {
-    command[1].erase(0, 1);
-    // need to make a function that returns the channel to OPTIMIZE
-    if (command[1].empty())
-      return;
-    if (command.size() == 3) {
-      size_t i;
-      for (i = 0; i < channels.size(); i++) {
-        if (!channels[i].getName().compare(command[1])) {
-          if (!channels[i].isOperator(clt.getNickname())) {
-            std::cout << "client must be an operator" << std::endl;
-            return;
-          }
-          // cases : +i -i +t -t -k -l
-          if (!command[2].compare("+i"))
-            channels[i].c_modes[INVITE_ONLY_M] = true;
-          else if (!command[2].compare("-i"))
-            channels[i].c_modes[INVITE_ONLY_M] = false;
-          else if (!command[2].compare("+t"))
-            channels[i].c_modes[TOPIC_RESTRICTION_M] = true;
-          else if (!command[2].compare("-t"))
-            channels[i].c_modes[TOPIC_RESTRICTION_M] = false;
-          else if (!command[2].compare("-k")) {
-            channels[i].setKey("");
-            channels[i].c_modes[CHANNEL_KEY_M] = false;
-          } else if (!command[2].compare("-l")) {
-            channels[i].setUserLimit(0);
-            channels[i].c_modes[USER_LIMIT_M] = false;
-          } else
-            std::cout << "MODE does not updated" << std::endl;
-          break;
-        }
-      }
-      if (i == channels.size())
-        std::cout << "Channel doesn't exist" << std::endl;
-    } else if (command.size() == 4) {
-      size_t i;
-      for (i = 0; i < channels.size(); i++) {
-        if (!channels[i].getName().compare(command[1])) {
-          if (!channels[i].isOperator(clt.getNickname())) {
-            std::cout << "client must be an operator" << std::endl;
-            return;
-          }
-          // cases : +k +l +o -o
-          if (!command[2].compare("+k")) {
-            channels[i].setKey(command[3]);
-            channels[i].c_modes[CHANNEL_KEY_M] = true;
-          } else if (!command[2].compare("+l")) {
-            // need to check the number
-            channels[i].setUserLimit(std::atoi(command[3].c_str()));
-            channels[i].c_modes[USER_LIMIT_M] = true;
-          } else if (!command[2].compare("+o"))
-            channels[i].addAsOperator(command[3]);
-          else if (!command[2].compare("-o"))
-            channels[i].eraseOperator(command[3]);
-          else
-            std::cout << "MODE does not updated" << std::endl;
-          break;
-        }
-      }
-      if (i == channels.size())
-        std::cout << "Channel doesn't exist" << std::endl;
+  if (command.size() < 2)
+    return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
+  // user's modes aren't supported
+  else if (command[1].at(0) != '#')
+    return send_reply(clt.getFd(), ERR_UMODEUNKNOWNFLAG(clt.getNickname()));
+  command[1].erase(0, 1);
+  if (command[1].empty())
+    return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
+  // get the channel index
+  size_t i;
+  for (i = 0; i < channels.size(); i++) {
+    if (!channels[i].getName().compare(command[1]))
+      break ;
+  }
+  if (i == channels.size())
+    return send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
+  if (command.size() == 2)
+  {
+    std::string modes;
+    if (channels[i].c_modes[INVITE_ONLY_M])
+      modes += "i";
+    if (channels[i].c_modes[TOPIC_RESTRICTION_M])
+      modes += "t";
+    if (channels[i].c_modes[CHANNEL_KEY_M])
+      modes += "k";
+    if (channels[i].c_modes[USER_LIMIT_M])
+      modes += "l";
+    return send_reply(clt.getFd(), RPL_CHANNELMODEIS(clt.getNickname(), command[1], modes));
+  }
+  if (!channels[i].isOperator(clt.getNickname()))
+    return send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
+  if (command.size() == 3) {
+    // cases : +i -i +t -t -k -l
+    if (!command[2].compare("+i"))
+      channels[i].c_modes[INVITE_ONLY_M] = true;
+    else if (!command[2].compare("-i"))
+      channels[i].c_modes[INVITE_ONLY_M] = false;
+    else if (!command[2].compare("+t"))
+      channels[i].c_modes[TOPIC_RESTRICTION_M] = true;
+    else if (!command[2].compare("-t"))
+      channels[i].c_modes[TOPIC_RESTRICTION_M] = false;
+    else if (!command[2].compare("-k")) {
+      channels[i].setKey("");
+      channels[i].c_modes[CHANNEL_KEY_M] = false;
+    } else if (!command[2].compare("-l")) {
+      channels[i].setUserLimit(0);
+      channels[i].c_modes[USER_LIMIT_M] = false;
     }
+  }
+  else if (command.size() == 4) {
+    // cases : +k +l +o -o
+    if (!command[2].compare("+k")) {
+      channels[i].setKey(command[3]);
+      channels[i].c_modes[CHANNEL_KEY_M] = true;
+    } else if (!command[2].compare("+l")) {
+      // checking is the number valid
+      long num = isValidInteger(command[3]);
+      if (num != 0)
+      {
+        channels[i].setUserLimit(std::atoi(command[3].c_str()));
+        channels[i].c_modes[USER_LIMIT_M] = true;
+      }
+    } else if (!command[2].compare("+o") && channels[i].check_nickname(command[3]))
+      channels[i].addAsOperator(command[3]);
+    else if (!command[2].compare("-o")  && channels[i].check_nickname(command[3]))
+      channels[i].eraseOperator(command[3]);
   }
 }
 
