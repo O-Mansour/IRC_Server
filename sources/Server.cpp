@@ -307,6 +307,7 @@ void server::do_join(std::vector<std::string> &command, client &clt) {
       channel chnl(chan_list[i], clt.getNickname());
       chnl.c_join(clt, "");
       channels.push_back(chnl);
+      std::cout << "channel " << chnl.getName() << std::endl;
     }
   }
 }
@@ -417,7 +418,6 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
         std::cout << RED
                   << "The Bot already joined this channel : " << command[2]
                   << RESET << std::endl;
-        write(fd, ss.str().c_str(), ss.str().size());
         return;
       }
       if (channels[i].check_nickname(command[1])) {
