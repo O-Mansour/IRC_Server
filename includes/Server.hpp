@@ -115,7 +115,7 @@ public:
   void do_topic(std::vector<std::string> &command, client &clt,
                 std::string line);
   void do_invite(std::vector<std::string> &command, client &clt);
-  void do_kick(std::vector<std::string> &command, client &clt);
+  void do_kick(std::vector<std::string> &command, client &clt, std::string line);
   void do_mode(std::vector<std::string> &command, client &clt);
   void send_pong(std::vector<std::string> &command, client &clt);
   void register_user(client &clt);
