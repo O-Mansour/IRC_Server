@@ -111,7 +111,7 @@ void channel::c_privmsg(client &clt, std::string key) {
 
 void channel::msgToAllMemebers(std::string key) {
   for (size_t i = 0; i < clients.size(); i++) {
-    write(clients[i].getFd(), key.c_str(), key.size());
+    send_reply(clients[i].getFd(), key);
   }
 }
 

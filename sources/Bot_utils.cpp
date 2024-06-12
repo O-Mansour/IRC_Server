@@ -113,7 +113,6 @@ std::vector<std::string> extractData() {
   std::stringstream ss(fileContent);
 
   while (getline(ss, line)) {
-    std::cout << line << std::endl;
     std::vector<std::string> tmp = splitString(line, ',');
     if (!tmp.empty())
       db.insert(db.end(), tmp.begin(), tmp.end());
