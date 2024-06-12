@@ -93,6 +93,12 @@ bool channel::check_nickname(std::string str){
 	return false;
 }
 
+void channel::topicToAllMembers(client &clt, std::string key) {
+  std::string msg_str = ":" + clt.getNickname() + "!~h@localhost TOPIC #" + this->getName() + " :" + key + "\n";
+  for (size_t i = 0; i < clients.size(); i++) {
+      write(clients[i].getFd(), msg_str.c_str(), msg_str.length());
+  }
+}
 
 void channel::c_privmsg(client &clt, std::string key) {
   std::string msg_str = ":" + clt.getNickname() + "!~h@localhost PRIVMSG #" +

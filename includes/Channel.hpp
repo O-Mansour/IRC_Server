@@ -59,6 +59,7 @@ public:
 	bool check_nickname(std::string str);
   bool isOperator(std::string nick) const;
   std::string getClientsList() const;
+  void topicToAllMembers(client &clt, std::string key);
 
 	void kick_user_msg(std::string msg);
   // setters and getter for bot
