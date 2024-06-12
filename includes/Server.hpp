@@ -25,6 +25,7 @@
 #include <ctime>
 #include <iomanip>
 #include "Channel.hpp"
+#include <limits.h>
 
 //=========Errors===============
 //Welcome
@@ -57,6 +58,10 @@
 # define RPL_ENDOFNAMES(nick, channel) (":localhost 366 " + nick + " #" + channel + " :End of /NAMES list\r\n")
 # define ERR_INVITEONLYCHAN(nick, channel) (":localhost 473 " + nick + " #" + channel + " :Cannot join channel (+i)\r\n")
 # define ERR_CHANNELISFULL(nick, channel) (":localhost 471 " + nick + " #" + channel + " :Cannot join channel (+l)\r\n")
+
+// MODE
+# define ERR_UMODEUNKNOWNFLAG(nick) (":localhost 501 " + nick + " :Unknown MODE flag\r\n")
+# define RPL_CHANNELMODEIS(nick, channel, modes) (":localhost 324 " + nick + " #" + channel + " +" + modes + "\r\n")
 
 
 //==========Macros===============
