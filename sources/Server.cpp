@@ -306,9 +306,13 @@ void server::do_join(std::vector<std::string> &command, client &clt)
     }
     if (j == channels.size()) {
       // create channel and add the user to it
-      channel chnl(chan_list[i], clt.getNickname());
-      chnl.c_join(clt, "");
-      channels.push_back(chnl);
+      size_t notValidChar = chan_list[i].find(",\a");
+      if (notValidChar == std::string::npos)
+      {
+        channel chnl(chan_list[i], clt);
+        chnl.c_join(clt, "");
+        channels.push_back(chnl);
+      }
     }
   }
 }
@@ -414,7 +418,7 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
       if (channels[i].check_nickname(command[1])) {
         send_reply(clt.getFd(),ERR_USERONCHANNEL(command[1], command[2]));
         return ;
-      }else if (channels[i].c_modes[INVITE_ONLY_M] && !channels[i].isOperator(clt.getNickname())) {
+      }else if (channels[i].c_modes[INVITE_ONLY_M] && channels[i].getOperatorIndex(clt.getNickname()) == -1) {
 				send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(command[1], command[2]));
         return;
       }else if (channels[i].check_nickname(clt.getNickname()))
@@ -436,7 +440,7 @@ void server::do_kick(std::vector<std::string> &command, client &clt) {
     size_t i = 0;
     for (; i < channels.size(); i++) {
       if (!channels[i].getName().compare(command[1])) {
-        if (!channels[i].isOperator(clt.getNickname())) {
+        if (channels[i].getOperatorIndex(clt.getNickname()) == -1) {
           std::cout << "You are not an operator" << std::endl;
           return;
         }
@@ -484,7 +488,7 @@ void server::do_topic(std::vector<std::string> &command, client &clt,
   else if (command.size() > 2 && command[2].at(0) == ':') {
     // TOPIC #channelname :new topic
     if (!channels[i].c_modes[TOPIC_RESTRICTION_M]
-        || (channels[i].c_modes[TOPIC_RESTRICTION_M] && channels[i].isOperator(clt.getNickname())))
+        || (channels[i].c_modes[TOPIC_RESTRICTION_M] && channels[i].getOperatorIndex(clt.getNickname()) != -1))
     {
       std::string new_topic = extract_param(command, line, 2);
       channels[i].setTopic(new_topic);
@@ -540,7 +544,7 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
       modes += "l";
     return send_reply(clt.getFd(), RPL_CHANNELMODEIS(clt.getNickname(), command[1], modes));
   }
-  if (!channels[i].isOperator(clt.getNickname()))
+  if (channels[i].getOperatorIndex(clt.getNickname()) == -1)
     return send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
   if (command.size() == 3) {
     // cases : +i -i +t -t -k -l
@@ -573,10 +577,18 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
         channels[i].setUserLimit(std::atoi(command[3].c_str()));
         channels[i].c_modes[USER_LIMIT_M] = true;
       }
-    } else if (!command[2].compare("+o") && channels[i].check_nickname(command[3]))
-      channels[i].addAsOperator(command[3]);
-    else if (!command[2].compare("-o")  && channels[i].check_nickname(command[3]))
-      channels[i].eraseOperator(command[3]);
+    } else if (!command[2].compare("+o"))
+    {
+      int clt_index = channels[i].getUserIndex(command[3]);
+      if (clt_index != -1)
+        channels[i].addAsOperator(clt_index);
+    }
+    else if (!command[2].compare("-o"))
+    {
+      int op_index = channels[i].getOperatorIndex(command[3]);
+      if (op_index != -1)
+        channels[i].eraseOperator(op_index);
+    }
   }
 }
 
@@ -610,7 +622,6 @@ void server::channel_cmds(std::string line, client &clt) {
 void server::execute_cmds(client &clt) {
   size_t pos;
   std::string line;
-  // may need to implement \r\n as end of cmd
   while ((pos = read_buffer[clt.getFd()].find("\n")) != std::string::npos) {
     line = read_buffer[clt.getFd()].substr(0, pos);
     std::cout << YELLOW << "line to parse : " << RESET;

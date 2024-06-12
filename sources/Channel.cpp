@@ -2,7 +2,7 @@
 #include <sstream>
 #include <string>
 
-channel::channel(std::string n, std::string opr) : name(n), userLimit(0) {
+channel::channel(std::string n, client &opr) : name(n), userLimit(0) {
   this->isBotJoined = false;
   for (int i = 0; i < 4; i++)
     c_modes[i] = false;
@@ -27,34 +27,20 @@ std::string channel::getKey() const { return key; }
 
 void channel::setKey(const std::string k) { this->key = k; }
 
-void channel::addAsOperator(std::string nick) {
-  // check if the client is in the channel
-  size_t i;
-  for (i = 0; i < clients.size(); i++) {
-    if (!clients[i].getNickname().compare(nick)) {
-      operators.push_back(nick);
-      break;
-    }
+void channel::eraseOperator(int op_index) {
+  operators.erase(operators.begin() + op_index);
+}
+
+void channel::addAsOperator(int clt_index) {
+  operators.push_back(clients[clt_index]);
+}
+
+int channel::getOperatorIndex(const std::string &nick) const {
+  for (size_t i = 0; i < operators.size(); i++) {
+    if (!operators[i].getNickname().compare(nick))
+      return i;
   }
-  if (i == clients.size())
-    std::cout << "client must join the channel" << std::endl;
-}
-
-void channel::eraseOperator(std::string nick) {
-  if (isOperator(nick)) {
-    std::vector<std::string>::iterator it;
-    it = std::find(operators.begin(), operators.end(), nick);
-    operators.erase(it);
-  } else
-    std::cout << "client is not an operator" << std::endl;
-}
-
-bool channel::isOperator(std::string nick) const {
-  std::vector<std::string>::const_iterator it;
-  it = std::find(operators.begin(), operators.end(), nick);
-  if (it != operators.end())
-    return true;
-  return false;
+  return -1;
 }
 
 void channel::c_join(client &clt, std::string k) {
@@ -125,10 +111,8 @@ int channel::getUserIndex(const std::string &nick) {
 
 void channel::remove_user(int index, const std::string &nick) {
   clients.erase(clients.begin() + index);
-  std::vector<std::string>::iterator it;
-  it = std::find(operators.begin(), operators.end(), nick);
-  if (it != operators.end())
-    operators.erase(it);
+  if (getOperatorIndex(nick) != -1)
+    eraseOperator(getOperatorIndex(nick));
 }
 
 int channel::user_fd(std::string &key) {
@@ -146,7 +130,7 @@ std::string channel::getClientsList() const
   {
     if (i != 0)
       res += " ";
-    if (isOperator(clients[i].getNickname()))
+    if (getOperatorIndex(clients[i].getNickname()) != -1)
       res += "@";
     res += clients[i].getNickname();
   }
