@@ -109,7 +109,7 @@ std::vector<std::string> extractData() {
   std::vector<std::string> db;
   std::string line;
 
-  std::string fileContent = getFileContent("data/bad_words.txt");
+  std::string fileContent = getFileContent("data/forbidden_words.txt");
   std::stringstream ss(fileContent);
 
   while (getline(ss, line)) {
