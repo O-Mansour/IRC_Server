@@ -60,4 +60,4 @@
 
 //kick
 // #define RPL_KICK(client,kicked,channel,reason)(":" + client + "!~h@localhost Kicked " + kicked + " from #" + channel + " [" + reason + "]\r\n")
-#define RPL_KICK(client, channel, kicked, reason) (":" + client + " KICK #" + channel + " " + kicked + " :" + reason + "\n")
+#define RPL_KICK(client, channel, kicked, reason) (":" + client + "!~h@localhost KICK #" + channel + " " + kicked + " :" + reason + "\n")

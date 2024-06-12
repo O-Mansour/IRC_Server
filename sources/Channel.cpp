@@ -150,7 +150,7 @@ std::string channel::getClientsList() const
 
 void channel::kick_user_msg(std::string msg){
 	for (size_t i = 0; i < this->getSize(); i++){
-		send_reply(this->clients[i].getFd(), msg + "\r\n");
+		send_reply(this->clients[i].getFd(), msg);
 	}
 }
 
