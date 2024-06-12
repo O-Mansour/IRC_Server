@@ -3,11 +3,13 @@
 
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 Bot::Bot(std::string nickname, std::string fullname, std::string username) {
   // creating the bot
+  this->badWrodCount = 3; // init and max is three
   this->badWords = extractData();
 
   this->fullname = fullname;
@@ -70,6 +72,7 @@ bool Bot::parseMessage() {
 bool Bot::barWordChecker() {
   std::vector<std::string> tmp = splitString(this->message, ' ');
   std::cout << "count tmp -> " << tmp.size() << std::endl;
+  std::stringstream ss;
 
   if (tmp.empty())
     return false;
@@ -79,7 +82,13 @@ bool Bot::barWordChecker() {
     std::cout << "checking now" << *it << std::endl;
     if (std::find(this->badWords.begin(), this->badWords.end(), *it) !=
         this->badWords.end()) {
-      this->badRes = " rd lbal amskhot";
+      if (this->badWrodCount != 0) {
+        ss << "pay Attention, you still have: " << this->badWrodCount
+           << " to be kicked";
+        this->badWrodCount--;
+        this->badRes = ss.str();
+      } else
+        this->badRes = "-2";
       return true;
     }
   }

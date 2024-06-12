@@ -74,7 +74,7 @@ void server::deleteClientData(client &clt) {
   close(clt.getFd());
 }
 
-void  send_reply(int fd, std::string str) {
+void send_reply(int fd, std::string str) {
   send(fd, str.c_str(), str.length(), 0);
 }
 
@@ -178,8 +178,7 @@ void server::check_nickname(std::vector<std::string> &command, client &clt) {
   } else {
     size_t i;
     for (i = 0; i < clients.size(); i++) {
-      if (!clients[i].getNickname().compare(command[1]) &&
-          !clients[i].authentication[1]) {
+      if (!clients[i].getNickname().compare(command[1])) {
         send_reply(clt.getFd(),
                    ERR_NICKNAMEINUSE(clt.getNickname(), command[1]));
         break;
@@ -208,7 +207,7 @@ void server::register_user(client &clt) {
 
 void server::check_username(std::vector<std::string> &command, client &clt,
                             std::string &line) {
-  if (command.size() < 5 )
+  if (command.size() < 5)
     return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
   else if (clt.authentication[2])
     return send_reply(clt.getFd(), ERR_ALREADYREGISTERED(clt.getNickname()));
@@ -258,35 +257,31 @@ std::vector<std::string> tmp_split(std::string line, std::string delim) {
   return res;
 }
 
-void server::do_join(std::vector<std::string> &command, client &clt)
-{
+void server::do_join(std::vector<std::string> &command, client &clt) {
   if (command.size() < 2)
     return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
   // "JOIN 0" to leave all channels
-  if (!command[1].compare("0"))
-  {
+  if (!command[1].compare("0")) {
     for (size_t i = 0; i < channels.size(); i++) {
       int uIndex = channels[i].getUserIndex(clt.getNickname());
       if (uIndex != NOT_VALID)
         channels[i].remove_user(uIndex, clt.getNickname());
     }
-    return ;
+    return;
   }
   std::vector<std::string> chan_list = tmp_split(command[1], ",");
   std::vector<std::string> keys_list;
   if (command.size() > 2)
     keys_list = tmp_split(command[2], ",");
   for (size_t i = 0; i < chan_list.size(); i++) {
-    if (chan_list[i].at(0) != '#')
-    {
+    if (chan_list[i].at(0) != '#') {
       send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
-      continue ;
+      continue;
     }
     chan_list[i].erase(0, 1);
-    if (chan_list[i].length() == 0)
-    {
+    if (chan_list[i].length() == 0) {
       send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
-      continue ;
+      continue;
     }
     std::string c_key = "";
     if (keys_list.size() > i)
@@ -296,9 +291,12 @@ void server::do_join(std::vector<std::string> &command, client &clt)
       if (!channels[j].getName().compare(chan_list[i])) {
         // check channel modes
         if (channels[j].c_modes[INVITE_ONLY_M])
-          send_reply(clt.getFd(), ERR_INVITEONLYCHAN(clt.getNickname(), chan_list[i]));
-        else if (channels[j].c_modes[USER_LIMIT_M] && channels[j].getSize() == channels[j].getUserLimit())
-          send_reply(clt.getFd(), ERR_CHANNELISFULL(clt.getNickname(), chan_list[i]));
+          send_reply(clt.getFd(),
+                     ERR_INVITEONLYCHAN(clt.getNickname(), chan_list[i]));
+        else if (channels[j].c_modes[USER_LIMIT_M] &&
+                 channels[j].getSize() == channels[j].getUserLimit())
+          send_reply(clt.getFd(),
+                     ERR_CHANNELISFULL(clt.getNickname(), chan_list[i]));
         else
           channels[j].c_join(clt, c_key);
         break;
@@ -331,13 +329,25 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
           if (channels[i].getIsBotJoined()) {
             this->bot.setMessage(line);
             std::string msg = this->bot.getResponse(channels[i].getName());
-            if (msg != "-1")
+            if (msg.compare("-1") != 0 && msg.find("-2") == std::string::npos) {
+              std::cout << "msg => :" << msg << std::endl;
               channels[i].msgToAllMemebers(msg);
+            }
+            if (msg.find("-2") != std::string::npos) {
+              std::cout << "kicked by => :" << msg << std::endl;
+              channels[i].kick_user_msg(
+                  RPL_KICK(this->bot.getNickname(), channels[i].getName(),
+                           clt.getNickname(), " Dont use bad words"));
+              int res = channels[i].getUserIndex(clt.getNickname());
+              if (res != -1)
+                channels[i].remove_user(res, clt.getNickname());
+            }
             return;
           }
         }
         if (i == clients.size())
-          send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
+          send_reply(clt.getFd(),
+                     ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
       }
     } else {
       line = extract_param(command, line, 2);
@@ -376,13 +386,11 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
       if (!clients[i].getNickname().compare(command[1])) {
         user_exist = true;
         fd = clients[i].getFd();
+      } else if (!this->bot.getNickname().compare(
+                     command[1])) // checking also for bot name
+      {
+        user_exist = true;
       }
-      // add your own bool here
-      // } else if (!this->bot.getNickname().compare(
-      //                command[1])) // checking also for bot name
-      // {
-      //   user_exist = true;
-      // }
     }
     if (!user_exist) {
       send_reply(clt.getFd(), ERR_NOSUCHNICK());
@@ -394,124 +402,122 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
         channel_exist = true;
     }
     if (!channel_exist) {
-      send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
+      send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[2]));
       return;
     }
     for (size_t i = 0; i < channels.size(); i++) {
-      // if (!this->bot.getNickname().compare(command[1]) &&
-      //     !channels[i].getIsBotJoined()) // adding the bot to the channel
-      // {
-      //   std::cout << "adding bot to channel " << std::endl;
-      //   channels[i].setIsBotJoined(true);
-      // } else if (!this->bot.getNickname().compare(command[1]) &&
-      //            channels[i].getIsBotJoined()) {
-      //   std::cout << RED
-      //             << "The Bot already joined this channel : " << command[2]
-      //             << RESET << std::endl;
-      //   write(fd, ss.str().c_str(), ss.str().size());
-      //   return;
-      // }
-      if (channels[i].check_nickname(command[1])) {
-        send_reply(clt.getFd(),ERR_USERONCHANNEL(command[1], command[2]));
-        return ;
-      }else if (channels[i].c_modes[INVITE_ONLY_M] && !channels[i].isOperator(clt.getNickname())) {
-				send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(command[1], command[2]));
+      if (!this->bot.getNickname().compare(command[1]) &&
+          !channels[i].getIsBotJoined()) // adding the bot to the channel
+      {
+        std::cout << "adding bot to channel " << std::endl;
+        channels[i].setIsBotJoined(true); // bot is officially joinded channel
+        channels[i].addAsOperator(this->bot.getNickname());
+      } else if (!this->bot.getNickname().compare(command[1]) &&
+                 channels[i].getIsBotJoined()) {
+        std::cout << RED
+                  << "The Bot already joined this channel : " << command[2]
+                  << RESET << std::endl;
+        write(fd, ss.str().c_str(), ss.str().size());
         return;
-      }else if (channels[i].check_nickname(clt.getNickname()))
-				clt_part_in_it = true;
+      }
+      if (channels[i].check_nickname(command[1])) {
+        send_reply(clt.getFd(), ERR_USERONCHANNEL(command[1], command[2]));
+        return;
+      } else if (channels[i].c_modes[INVITE_ONLY_M] &&
+                 !channels[i].isOperator(clt.getNickname())) {
+        send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(command[1], command[2]));
+        return;
+      } else if (channels[i].check_nickname(clt.getNickname()))
+        clt_part_in_it = true;
     }
     if (clt_part_in_it) {
-			send_reply(fd, RPL_INVITING(clt.getNickname(), command[1], command[2]));
+      send_reply(fd, RPL_INVITING(clt.getNickname(), command[1], command[2]));
     } else
-				send_reply(clt.getFd(), ERR_NOTONCHANNEL(clt.getNickname(), command[2]));
+      send_reply(clt.getFd(), ERR_NOTONCHANNEL(clt.getNickname(), command[2]));
   }
 }
 
-void server::do_kick(std::vector<std::string> &command, client &clt) {
+void server::do_kick(std::vector<std::string> &command, client &clt,
+                     std::string line) {
   std::stringstream ss;
-  if (command.size() != 3 && command.size() != 4)
-    std::cout << "Not valid args" << std::endl;
+  if (command.size() < 4)
+    send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
   else {
     command[1].erase(0, 1);
     size_t i = 0;
     for (; i < channels.size(); i++) {
       if (!channels[i].getName().compare(command[1])) {
         if (!channels[i].isOperator(clt.getNickname())) {
-          std::cout << "You are not an operator" << std::endl;
+          send_reply(clt.getFd(),
+                     ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
           return;
         }
         int j = channels[i].getUserIndex(command[2]);
         if (j == -1) {
-          std::cout << RED << "This User doesn't exist in this channel" << RESET
-                    << std::endl;
+          send_reply(clt.getFd(),
+                     ERR_NOTONCHANNEL(clt.getNickname(), command[1]));
           return;
         }
-        ss << RED << clt.getNickname() << " Kicked your ass from the channel"
-           << RESET << std::endl;
-        ;
-        if (command.size() == 4)
-          ss << UNDERLINE << "Reason: " << RESET << command[3] << std::endl;
-        write(channels[i].user_fd(command[2]), ss.str().c_str(),
-              ss.str().size());
+        std::string reason;
+        reason = extract_param(command, line, 3);
+        if (reason.length() <= 1) {
+          reason = "Operator didn't tell why";
+          channels[i].kick_user_msg(
+              RPL_KICK(clt.getNickname(), command[1], command[2], reason));
+        } else
+          channels[i].kick_user_msg(
+              RPL_KICK(clt.getNickname(), command[1], command[2], reason));
         channels[i].remove_user(j, command[2]);
         return;
       }
     }
-    std::cout << RED << "This channel doesn't exist" << RESET << std::endl;
+    send_reply(clt.getFd(), ERR_NOTONCHANNEL(clt.getNickname(), command[1]));
   }
 }
 
 void server::do_topic(std::vector<std::string> &command, client &clt,
                       std::string line) {
-  // need to check the mode (t) here
-  if (command.size() == 2 && command[1].at(0) == '#') {
-    // TOPIC #channelname
-    command[1].erase(0, 1);
-    size_t i;
-    for (i = 0; i < channels.size(); i++) {
-      if (!channels[i].getName().compare(command[1])) {
-        if (channels[i].getTopic().empty())
-          std::cout << "Channel has no topic yet" << std::endl;
-        else {
-          std::string c_topic = channels[i].getTopic() + "\n";
-          send(clt.getFd(), c_topic.c_str(), c_topic.length(), 0);
-          send(clt.getFd(), "\n", 1, 0);
-        }
-        break;
-      }
-    }
-    if (i == channels.size())
-      std::cout << "Channel doesn't exist" << std::endl;
+  if (command.size() < 2 || command[1].at(0) != '#')
+    return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
+  command[1].erase(0, 1);
+  size_t i;
+  for (i = 0; i < channels.size(); i++) {
+    if (!channels[i].getName().compare(command[1]))
+      break;
   }
-  // TOPIC #channel:::name :The: New:     Topic
-  // TOPIC #channelname :ThisIsTheNewTopic
-  else if (command.size() > 2 && command[1].at(0) == '#' &&
-           command[2].at(0) == ':') {
-    std::string new_topic = extract_param(command, line, 2);
-    command[1].erase(0, 1);
-    size_t i;
-    for (i = 0; i < channels.size(); i++) {
-      if (!channels[i].getName().compare(command[1])) {
-        channels[i].setTopic(new_topic);
-        break;
-      }
-    }
-    if (i == channels.size())
-      std::cout << "Channel doesn't exist" << std::endl;
+  if (i == channels.size())
+    return send_reply(clt.getFd(),
+                      ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
+  if (command.size() == 2) {
+    // TOPIC #channelname
+    if (channels[i].getTopic().empty())
+      send_reply(clt.getFd(), RPL_NOTOPIC(clt.getNickname(), command[1]));
+    else
+      send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), command[1],
+                                        channels[i].getTopic()));
+  } else if (command.size() > 2 && command[2].at(0) == ':') {
+    // TOPIC #channelname :new topic
+    if (!channels[i].c_modes[TOPIC_RESTRICTION_M] ||
+        (channels[i].c_modes[TOPIC_RESTRICTION_M] &&
+         channels[i].isOperator(clt.getNickname()))) {
+      std::string new_topic = extract_param(command, line, 2);
+      channels[i].setTopic(new_topic);
+      channels[i].topicToAllMembers(clt, new_topic);
+    } else
+      send_reply(clt.getFd(),
+                 ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
   }
 }
 
-long isValidInteger(const std::string &str)
-{
+long isValidInteger(const std::string &str) {
   if (str.empty() || str.length() > 10)
     return 0;
-  for (size_t i = 0; i < str.length(); i++)
-  {
-		if (!isdigit(str[i]))
-			    return 0;
+  for (size_t i = 0; i < str.length(); i++) {
+    if (!isdigit(str[i]))
+      return 0;
   }
   long res = std::atol(str.c_str());
-	if (res > INT_MAX || res < 0)
+  if (res > INT_MAX || res < 0)
     return 0;
   return res;
 }
@@ -529,12 +535,12 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
   size_t i;
   for (i = 0; i < channels.size(); i++) {
     if (!channels[i].getName().compare(command[1]))
-      break ;
+      break;
   }
   if (i == channels.size())
-    return send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
-  if (command.size() == 2)
-  {
+    return send_reply(clt.getFd(),
+                      ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
+  if (command.size() == 2) {
     std::string modes;
     if (channels[i].c_modes[INVITE_ONLY_M])
       modes += "i";
@@ -544,10 +550,12 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
       modes += "k";
     if (channels[i].c_modes[USER_LIMIT_M])
       modes += "l";
-    return send_reply(clt.getFd(), RPL_CHANNELMODEIS(clt.getNickname(), command[1], modes));
+    return send_reply(clt.getFd(),
+                      RPL_CHANNELMODEIS(clt.getNickname(), command[1], modes));
   }
   if (!channels[i].isOperator(clt.getNickname()))
-    return send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
+    return send_reply(clt.getFd(),
+                      ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
   if (command.size() == 3) {
     // cases : +i -i +t -t -k -l
     if (!command[2].compare("+i"))
@@ -565,8 +573,7 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
       channels[i].setUserLimit(0);
       channels[i].c_modes[USER_LIMIT_M] = false;
     }
-  }
-  else if (command.size() == 4) {
+  } else if (command.size() == 4) {
     // cases : +k +l +o -o
     if (!command[2].compare("+k")) {
       channels[i].setKey(command[3]);
@@ -574,14 +581,15 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
     } else if (!command[2].compare("+l")) {
       // checking is the number valid
       long num = isValidInteger(command[3]);
-      if (num != 0)
-      {
+      if (num != 0) {
         channels[i].setUserLimit(std::atoi(command[3].c_str()));
         channels[i].c_modes[USER_LIMIT_M] = true;
       }
-    } else if (!command[2].compare("+o") && channels[i].check_nickname(command[3]))
+    } else if (!command[2].compare("+o") &&
+               channels[i].check_nickname(command[3]))
       channels[i].addAsOperator(command[3]);
-    else if (!command[2].compare("-o")  && channels[i].check_nickname(command[3]))
+    else if (!command[2].compare("-o") &&
+             channels[i].check_nickname(command[3]))
       channels[i].eraseOperator(command[3]);
   }
 }
@@ -590,7 +598,8 @@ void server::send_pong(std::vector<std::string> &command, client &clt) {
   if (command.size() < 2 || command[1].empty())
     send_reply(clt.getFd(), (ERR_NEEDMOREPARAMS()));
   else
-    send_reply(clt.getFd(), "PONG " + std::string(SERVER_NAME) + " " + command[1] + "\r\n");
+    send_reply(clt.getFd(),
+               "PONG " + std::string(SERVER_NAME) + " " + command[1] + "\r\n");
 }
 
 void server::channel_cmds(std::string line, client &clt) {
@@ -604,12 +613,13 @@ void server::channel_cmds(std::string line, client &clt) {
   else if (!command[0].compare("INVITE"))
     do_invite(command, clt);
   else if (!command[0].compare("KICK"))
-    do_kick(command, clt);
+    do_kick(command, clt, line);
   else if (!command[0].compare("MODE"))
     do_mode(command, clt);
   else if (!command[0].compare("PING"))
     send_pong(command, clt);
-  // unknown cmds reply 421
+  else
+    send_reply(clt.getFd(), ERR_UNKNOWNCOMMAND(clt.getNickname(), command[0]));
 }
 
 void server::execute_cmds(client &clt) {
