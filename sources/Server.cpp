@@ -463,41 +463,35 @@ void server::do_kick(std::vector<std::string> &command, client &clt) {
 
 void server::do_topic(std::vector<std::string> &command, client &clt,
                       std::string line) {
-  // need to check the mode (t) here
-  if (command.size() == 2 && command[1].at(0) == '#') {
-    // TOPIC #channelname
-    command[1].erase(0, 1);
-    size_t i;
-    for (i = 0; i < channels.size(); i++) {
-      if (!channels[i].getName().compare(command[1])) {
-        if (channels[i].getTopic().empty())
-          std::cout << "Channel has no topic yet" << std::endl;
-        else {
-          std::string c_topic = channels[i].getTopic() + "\n";
-          send(clt.getFd(), c_topic.c_str(), c_topic.length(), 0);
-          send(clt.getFd(), "\n", 1, 0);
-        }
-        break;
-      }
-    }
-    if (i == channels.size())
-      std::cout << "Channel doesn't exist" << std::endl;
+  if (command.size() < 2 || command[1].at(0) != '#')
+    return send_reply(clt.getFd(), ERR_NEEDMOREPARAMS());
+  command[1].erase(0, 1);
+  size_t i;
+  for (i = 0; i < channels.size(); i++) {
+    if (!channels[i].getName().compare(command[1]))
+      break ;
   }
-  // TOPIC #channel:::name :The: New:     Topic
-  // TOPIC #channelname :ThisIsTheNewTopic
-  else if (command.size() > 2 && command[1].at(0) == '#' &&
-           command[2].at(0) == ':') {
-    std::string new_topic = extract_param(command, line, 2);
-    command[1].erase(0, 1);
-    size_t i;
-    for (i = 0; i < channels.size(); i++) {
-      if (!channels[i].getName().compare(command[1])) {
-        channels[i].setTopic(new_topic);
-        break;
-      }
+  if (i == channels.size())
+    return send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
+  if (command.size() == 2)
+  {
+    // TOPIC #channelname
+    if (channels[i].getTopic().empty())
+      send_reply(clt.getFd(), RPL_NOTOPIC(clt.getNickname(), command[1]));
+    else
+      send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), command[1], channels[i].getTopic()));
+  }
+  else if (command.size() > 2 && command[2].at(0) == ':') {
+    // TOPIC #channelname :new topic
+    if (!channels[i].c_modes[TOPIC_RESTRICTION_M]
+        || (channels[i].c_modes[TOPIC_RESTRICTION_M] && channels[i].isOperator(clt.getNickname())))
+    {
+      std::string new_topic = extract_param(command, line, 2);
+      channels[i].setTopic(new_topic);
+      channels[i].topicToAllMembers(clt, new_topic);
     }
-    if (i == channels.size())
-      std::cout << "Channel doesn't exist" << std::endl;
+    else
+      send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
   }
 }
 
@@ -609,7 +603,8 @@ void server::channel_cmds(std::string line, client &clt) {
     do_mode(command, clt);
   else if (!command[0].compare("PING"))
     send_pong(command, clt);
-  // unknown cmds reply 421
+  else
+    send_reply(clt.getFd(), ERR_UNKNOWNCOMMAND(clt.getNickname(), command[0]));
 }
 
 void server::execute_cmds(client &clt) {
