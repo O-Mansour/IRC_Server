@@ -3,7 +3,6 @@
 #include "Client.hpp"
 #include "Server.hpp"
 #include <cstring>
-#include <iostream>
 #include <unistd.h>
 #include <vector>
 
@@ -14,9 +13,6 @@
 #define GREEN "\033[1;32m"
 #define UNDERLINE "\033[4;37m"
 #define BOLD "\033\e[1m"
-
-#include <algorithm>
-#include <iostream>
 
 #define INVITE_ONLY_M 0
 #define TOPIC_RESTRICTION_M 1
@@ -31,12 +27,12 @@ private:
   size_t userLimit;
   size_t size;
   std::vector<client> clients;
-  std::vector<std::string> operators; // nickname may not works
+  std::vector<client> operators;
 
   bool isBotJoined;
 
 public:
-  channel(std::string n, std::string opr);
+  channel(std::string n, client &opr);
   ~channel();
   bool c_modes[4];
   std::string getName() const;
@@ -54,14 +50,14 @@ public:
   void setUserLimit(const size_t limit);
   std::string getKey() const;
   void setKey(const std::string t);
-  void addAsOperator(std::string nick);
-  void eraseOperator(std::string nick);
-	bool check_nickname(std::string str);
-  bool isOperator(std::string nick) const;
+  void addAsOperator(int clt_index);
+  void eraseOperator(int op_index);
+  bool check_nickname(std::string str);
+  int getOperatorIndex(const std::string &nick) const;
   std::string getClientsList() const;
   void topicToAllMembers(client &clt, std::string key);
 
-	void kick_user_msg(std::string msg);
+  void kick_user_msg(std::string msg);
   // setters and getter for bot
   void setIsBotJoined(bool val);
   bool getIsBotJoined() const;

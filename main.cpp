@@ -23,7 +23,7 @@ int main(int ac, char *av[])
 	if (ac != 3)
 	{
 		std::cerr << RED << "The ircserv needs port and password" << RESET << std::endl;
-		std::cerr << "For example : ./ircserv 6667 pass" << std::endl;
+		std::cerr << UNDERLINE << "\tFor example : ./ircserv 6667 pass" << RESET << std::endl;
 		return 1;
 	}
 	try
@@ -37,6 +37,3 @@ int main(int ac, char *av[])
 	}
 	return 0;
 }
-
-// for replies
-// :server_name <numeric reply code> <message text>

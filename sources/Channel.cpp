@@ -1,8 +1,9 @@
 #include "../includes/Channel.hpp"
+#include "Server.hpp"
 #include <sstream>
 #include <string>
 
-channel::channel(std::string n, std::string opr) : name(n), userLimit(0) {
+channel::channel(std::string n, client &opr) : name(n), userLimit(0) {
   this->isBotJoined = false;
   for (int i = 0; i < 4; i++)
     c_modes[i] = false;
@@ -27,34 +28,20 @@ std::string channel::getKey() const { return key; }
 
 void channel::setKey(const std::string k) { this->key = k; }
 
-void channel::addAsOperator(std::string nick) {
-  // check if the client is in the channel
-  size_t i;
-  for (i = 0; i < clients.size(); i++) {
-    if (!clients[i].getNickname().compare(nick)) {
-      operators.push_back(nick);
-      break;
-    }
+void channel::eraseOperator(int op_index) {
+  operators.erase(operators.begin() + op_index);
+}
+
+void channel::addAsOperator(int clt_index) {
+  operators.push_back(clients[clt_index]);
+}
+
+int channel::getOperatorIndex(const std::string &nick) const {
+  for (size_t i = 0; i < operators.size(); i++) {
+    if (!operators[i].getNickname().compare(nick))
+      return i;
   }
-  if (i == clients.size())
-    std::cout << "client must join the channel" << std::endl;
-}
-
-void channel::eraseOperator(std::string nick) {
-  if (isOperator(nick)) {
-    std::vector<std::string>::iterator it;
-    it = std::find(operators.begin(), operators.end(), nick);
-    operators.erase(it);
-  } else
-    std::cout << "client is not an operator" << std::endl;
-}
-
-bool channel::isOperator(std::string nick) const {
-  std::vector<std::string>::const_iterator it;
-  it = std::find(operators.begin(), operators.end(), nick);
-  if (it != operators.end())
-    return true;
-  return false;
+  return -1;
 }
 
 void channel::c_join(client &clt, std::string k) {
@@ -64,18 +51,18 @@ void channel::c_join(client &clt, std::string k) {
       if (clt.getFd() == clients[i].getFd())
         break;
     }
-    if (i == clients.size())
-    {
+    if (i == clients.size()) {
       clients.push_back(clt);
       send_reply(clt.getFd(), RPL_JOIN(clt.getNickname(), this->name));
       if (!this->topic.empty())
-        send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), this->name, this->topic));
+        send_reply(clt.getFd(),
+                   RPL_TOPIC(clt.getNickname(), this->name, this->topic));
       std::string clients_list = getClientsList();
-      send_reply(clt.getFd(), RPL_NAMREPLY(clt.getNickname(), this->name, clients_list));
+      send_reply(clt.getFd(),
+                 RPL_NAMREPLY(clt.getNickname(), this->name, clients_list));
       send_reply(clt.getFd(), RPL_ENDOFNAMES(clt.getNickname(), this->name));
     }
-  }
-  else
+  } else
     send_reply(clt.getFd(), ERR_BADCHANNELKEY(clt.getNickname(), this->name));
 }
 
@@ -86,26 +73,27 @@ bool channel::getCltFd(int fd) {
   return false;
 }
 
-bool channel::check_nickname(std::string str){
-	for (size_t i = 0; i < clients.size(); i++)
-		if (!str.compare(clients[i].getNickname()))
-			return true;
-	return false;
+bool channel::check_nickname(std::string str) {
+  for (size_t i = 0; i < clients.size(); i++)
+    if (!str.compare(clients[i].getNickname()))
+      return true;
+  return false;
 }
 
 void channel::topicToAllMembers(client &clt, std::string key) {
-  std::string msg_str = ":" + clt.getNickname() + "!~h@localhost TOPIC #" + this->getName() + " :" + key + "\n";
+  std::string msg_str = ":" + clt.getNickname() + "!@localhost TOPIC #" +
+                        this->getName() + " :" + key + "\n";
   for (size_t i = 0; i < clients.size(); i++) {
-      write(clients[i].getFd(), msg_str.c_str(), msg_str.length());
+    write(clients[i].getFd(), msg_str.c_str(), msg_str.length());
   }
 }
 
 void channel::c_privmsg(client &clt, std::string key) {
-  std::string msg_str = ":" + clt.getNickname() + "!~h@localhost PRIVMSG #" +
+  std::string msg_str = ":" + clt.getNickname() + "!@localhost PRIVMSG #" +
                         this->getName() + " :" + key + "\n";
   for (size_t i = 0; i < clients.size(); i++) {
-    if (clt.getNickname().compare(clients[i].getNickname()) != 0)
-      write(clients[i].getFd(), msg_str.c_str(), msg_str.length());
+    if (clt.getFd() != clients[i].getFd())
+      send_reply(clients[i].getFd(), msg_str);
   }
 }
 
@@ -125,10 +113,8 @@ int channel::getUserIndex(const std::string &nick) {
 
 void channel::remove_user(int index, const std::string &nick) {
   clients.erase(clients.begin() + index);
-  std::vector<std::string>::iterator it;
-  it = std::find(operators.begin(), operators.end(), nick);
-  if (it != operators.end())
-    operators.erase(it);
+  if (getOperatorIndex(nick) != NOT_VALID)
+    eraseOperator(getOperatorIndex(nick));
 }
 
 int channel::user_fd(std::string &key) {
@@ -139,25 +125,24 @@ int channel::user_fd(std::string &key) {
   return -1;
 }
 
-std::string channel::getClientsList() const
-{
+std::string channel::getClientsList() const {
   std::string res;
-  for (size_t i = 0; i < clients.size(); i++)
-  {
+  for (size_t i = 0; i < clients.size(); i++) {
     if (i != 0)
       res += " ";
-    if (isOperator(clients[i].getNickname()))
+    if (getOperatorIndex(clients[i].getNickname()) != -1)
       res += "@";
+    std::cout << "=======" << clients[i].getNickname()
+              << "=======" << std::endl;
     res += clients[i].getNickname();
   }
   return res;
 }
 
-
-void channel::kick_user_msg(std::string msg){
-	for (size_t i = 0; i < this->getSize(); i++){
-		send_reply(this->clients[i].getFd(), msg);
-	}
+void channel::kick_user_msg(std::string msg) {
+  for (size_t i = 0; i < this->getSize(); i++) {
+    send_reply(this->clients[i].getFd(), msg);
+  }
 }
 
 // getters and setter for bot

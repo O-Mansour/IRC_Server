@@ -13,7 +13,6 @@ typedef std::vector<std::string>::iterator vec_it;
 
 class Bot {
 private:
-  int badWrodCount;
   std::vector<std::string> badWords;
   std::string fullname;
   std::string username;
