@@ -30,8 +30,8 @@ private:
   std::string key;
   size_t userLimit;
   size_t size;
-  std::vector<client> clients;
-  std::vector<client> operators;
+  std::vector<client*> clients;
+  std::vector<client*> operators;
 
   bool isBotJoined;
 
