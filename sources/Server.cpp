@@ -1,5 +1,6 @@
 #include "../includes/Server.hpp"
 #include "../includes/Bot.hpp"
+#include "Dcc.hpp"
 #include <cstddef>
 #include <cstring>
 #include <iostream>
@@ -350,6 +351,13 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
           send_reply(clt.getFd(),
                      ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
       }
+    } else if (line.find("\001DCC SEND ") != std::string::npos ||
+               line.find("\001DCC CHAT ") != std::string::npos) {
+      // handle the dcc connection and send responce to the client
+
+      Dcc dccHandler(clt);
+      dccHandler.setData(line, this->getClients());
+      send_reply(dccHandler.getCltFd(), dccHandler.getClientResponce());
     } else {
       line = extract_param(command, line, 2);
       // checking for bot, and forward message to bot
@@ -682,3 +690,5 @@ void print_ft_irc() {
   std::cout << GREEN << "                                         " << RESET
             << std::endl;
 }
+
+std::vector<client> server::getClients() const { return this->clients; }
