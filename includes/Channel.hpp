@@ -31,12 +31,12 @@ private:
   size_t userLimit;
   size_t size;
   std::vector<client> clients;
-  std::vector<std::string> operators; // nickname may not works
+  std::vector<client> operators;
 
   bool isBotJoined;
 
 public:
-  channel(std::string n, std::string opr);
+  channel(std::string n, client &opr);
   ~channel();
   bool c_modes[4];
   std::string getName() const;
@@ -54,10 +54,10 @@ public:
   void setUserLimit(const size_t limit);
   std::string getKey() const;
   void setKey(const std::string t);
-  void addAsOperator(std::string nick);
-  void eraseOperator(std::string nick);
+  void addAsOperator(int clt_index);
+  void eraseOperator(int op_index);
 	bool check_nickname(std::string str);
-  bool isOperator(std::string nick) const;
+  int getOperatorIndex(const std::string &nick) const;
   std::string getClientsList() const;
   void topicToAllMembers(client &clt, std::string key);
 

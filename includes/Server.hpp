@@ -50,23 +50,6 @@
 // #define ERR_USERFORMAT() (UNDERLINE "localhost: Please set the second parameter with <0> and the third with <*>\r\n" RESET)
 // #define ERR_USERSYNTAX() (RED "localhost: Please use this syntax : USER <username> 0 * :<realname>\r\n" RESET)
 
-//JOIN :
-# define ERR_BADCHANNELKEY(nick, channel) (":localhost 475 " + nick + " #" + channel + " :Cannot join channel (+k)\r\n")
-# define RPL_JOIN(nick, channel) (":" + nick + "@localhost JOIN :#" +  channel + "\r\n")
-# define RPL_NAMREPLY(nick, channel, nicks_list) (":localhost 353 " + nick + " = #" + channel + " :" + nicks_list + "\r\n")
-# define RPL_ENDOFNAMES(nick, channel) (":localhost 366 " + nick + " #" + channel + " :End of /NAMES list\r\n")
-# define ERR_INVITEONLYCHAN(nick, channel) (":localhost 473 " + nick + " #" + channel + " :Cannot join channel (+i)\r\n")
-# define ERR_CHANNELISFULL(nick, channel) (":localhost 471 " + nick + " #" + channel + " :Cannot join channel (+l)\r\n")
-
-// TOPIC
-# define RPL_TOPIC(nick, channel, topic) (":localhost 332 " + nick + " #" + channel + " :" + topic + "\r\n")
-# define RPL_NOTOPIC(nick, channel) (":localhost 331 " + nick + " #" + channel + " :No topic is set\r\n")
-
-// MODE
-# define ERR_UMODEUNKNOWNFLAG(nick) (":localhost 501 " + nick + " :Unknown MODE flag\r\n")
-# define RPL_CHANNELMODEIS(nick, channel, modes) (":localhost 324 " + nick + " #" + channel + " +" + modes + "\r\n")
-
-# define ERR_UNKNOWNCOMMAND(nick, command) (":localhost 421 " + nick + " " + command + " :Unknown command\r\n")
 
 //==========Macros===============
 #define SERVER_NAME "FT_IRC"
