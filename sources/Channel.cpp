@@ -81,18 +81,18 @@ bool channel::check_nickname(std::string str){
 }
 
 void channel::topicToAllMembers(client &clt, std::string key) {
-  std::string msg_str = ":" + clt.getNickname() + "!~h@localhost TOPIC #" + this->getName() + " :" + key + "\n";
+  std::string msg_str = ":" + clt.getNickname() + "!@localhost TOPIC #" + this->getName() + " :" + key + "\n";
   for (size_t i = 0; i < clients.size(); i++) {
       write(clients[i].getFd(), msg_str.c_str(), msg_str.length());
   }
 }
 
 void channel::c_privmsg(client &clt, std::string key) {
-  std::string msg_str = ":" + clt.getNickname() + "!~h@localhost PRIVMSG #" +
+  std::string msg_str = ":" + clt.getNickname() + "!@localhost PRIVMSG #" +
                         this->getName() + " :" + key + "\n";
   for (size_t i = 0; i < clients.size(); i++) {
-    if (clt.getNickname().compare(clients[i].getNickname()) != 0)
-      write(clients[i].getFd(), msg_str.c_str(), msg_str.length());
+    if (clt.getFd() != clients[i].getFd())
+			send_reply(clients[i].getFd(), msg_str);
   }
 }
 
@@ -133,6 +133,7 @@ std::string channel::getClientsList() const
       res += " ";
     if (getOperatorIndex(clients[i].getNickname()) != -1)
       res += "@";
+		std::cout << "=======" << clients[i].getNickname() << "=======" << std::endl;
     res += clients[i].getNickname();
   }
   return res;

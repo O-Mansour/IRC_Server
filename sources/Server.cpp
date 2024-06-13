@@ -184,6 +184,8 @@ void server::check_nickname(std::vector<std::string> &command, client &clt) {
       }
     }
     if (i == clients.size()) {
+				for (size_t j = 0; j < clients.size();j++)
+					send_reply(clients[j].getFd(), RPL_NICK(clt.getNickname(), command[1]));
         clt.setNickname(command[1]);
         clt.authentication[1] = true;
     }
@@ -510,9 +512,9 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
     return send_reply(clt.getFd(),
                       RPL_CHANNELMODEIS(clt.getNickname(), command[1], modes));
   }
-  if (channels[i].getOperatorIndex(clt.getNickname()) == -1)
-    return send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
   if (command.size() == 3) {
+  	if (channels[i].getOperatorIndex(clt.getNickname()) == -1)
+    	return send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
     // cases : +i -i +t -t -k -l
     if (!command[2].compare("+i"))
       channels[i].c_modes[INVITE_ONLY_M] = true;
@@ -530,6 +532,8 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
       channels[i].c_modes[USER_LIMIT_M] = false;
     }
   } else if (command.size() == 4) {
+		if (channels[i].getOperatorIndex(clt.getNickname()) == -1)
+			return send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
     // cases : +k +l +o -o
     if (!command[2].compare("+k")) {
       channels[i].setKey(command[3]);
@@ -628,18 +632,10 @@ void print_time() {
 }
 
 void print_ft_irc() {
-  std::cout << GREEN << "███████╗████████╗     ██╗██████╗  ██████╗" << RESET
-            << std::endl;
-  std::cout << GREEN << "██╔════╝╚══██╔══╝     ██║██╔══██╗██╔════╝" << RESET
-            << std::endl;
-  std::cout << GREEN << "█████╗     ██║        ██║██████╔╝██║     " << RESET
-            << std::endl;
-  std::cout << GREEN << "██╔══╝     ██║        ██║██╔══██╗██║     " << RESET
-            << std::endl;
-  std::cout << GREEN << "██║        ██║███████╗██║██║  ██║╚██████╗" << RESET
-            << std::endl;
-  std::cout << GREEN << "╚═╝        ╚═╝╚══════╝╚═╝╚═╝  ╚═╝ ╚═════╝" << RESET
-            << std::endl;
-  std::cout << GREEN << "                                         " << RESET
-            << std::endl;
+std::cout << GREEN << "██╗██████╗  ██████╗        ███████╗███████╗██████╗ ██╗   ██╗" << RESET << std::endl;
+std::cout << GREEN << "██║██╔══██╗██╔════╝        ██╔════╝██╔════╝██╔══██╗██║   ██║" << RESET << std::endl;
+std::cout << GREEN << "██║██████╔╝██║             ███████╗█████╗  ██████╔╝██║   ██║" << RESET << std::endl;
+std::cout << GREEN << "██║██╔══██╗██║             ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝" << RESET << std::endl;
+std::cout << GREEN << "██║██║  ██║╚██████╗███████╗███████║███████╗██║  ██║ ╚████╔╝ " << RESET << std::endl;
+std::cout << GREEN << "╚═╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝" << RESET << std::endl;
 }

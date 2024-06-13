@@ -23,6 +23,7 @@
 #define ERR_NONICKNAMEGIVEN(client) (":localhost 431 " + client + " :No nickname given\r\n")
 #define ERR_ERRONEUSNICKNAME(client, nickname) (":localhost 432 " + client + " " + nickname + " :Erroneus nickname\r\n")
 #define ERR_NICKNAMEINUSE(client, nickname) (":localhost 433 " + client + " " + nickname + " :Nickname is already in use\r\n")
+#define RPL_NICK(oclient, nclient) (":" + oclient + "!@localhost NICK " +  nclient + "\r\n")
 
 // USER
 #define ERR_USERFORMAT()                                                       \
