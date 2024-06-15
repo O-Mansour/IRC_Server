@@ -45,11 +45,12 @@ void server::CreateClient() {
   client clt(nb);
   clients.push_back(clt);
   print_time();
-  std::cout << YELLOW << "New client connected with fd : " << nb << RESET
-            << std::endl;
+  std::cout << YELLOW << "New client connected with fd : " << nb << RESET << std::endl;
 }
 
 void server::deleteClientData(client &clt) {
+  print_time();
+  std::cout << RED << "Client with fd : " << clt.getFd() << " disconnected" << RESET << std::endl;
   // remove him from all channels
   for (size_t i = 0; i < channels.size(); i++) {
     int uIndex = channels[i].getUserIndex(clt.getNickname());
@@ -73,6 +74,7 @@ void server::deleteClientData(client &clt) {
     if (clients[i].getFd() == clt.getFd())
       clients.erase(clients.begin() + i);
   }
+  send_reply(clt.getFd(), RPL_QUIT(clt.getNickname(), "left the server"));
   close(clt.getFd());
 }
 
@@ -85,12 +87,9 @@ void server::HandleData(client &clt) {
   ssize_t rn = recv(clt.getFd(), buf, BUFFER_SIZE - 1, 0);
   if (rn < 0)
     throw std::runtime_error("recv() failed");
-  else if (rn == 0) {
-    print_time();
-    std::cout << RED << "Client with fd : " << clt.getFd() << " disconnected"
-              << RESET << std::endl;
+  else if (rn == 0)
     deleteClientData(clt);
-  } else {
+  else {
     buf[rn] = '\0';
     read_buffer[clt.getFd()].append(buf);
     execute_cmds(clt);
@@ -251,9 +250,7 @@ void server::do_join(std::vector<std::string> &command, client &clt) {
       int uIndex = channels[i].getUserIndex(clt.getNickname());
       if (uIndex != NOT_VALID) {
         channels[i].remove_user(uIndex, clt.getNickname());
-        send_reply(clt.getFd(),
-                   RPL_PART(clt.getNickname(), channels[i].getName(),
-                            std::string("Good bye")));
+        send_reply(clt.getFd(), RPL_PART(clt.getNickname(), channels[i].getName(), std::string("Good bye")));
       }
     }
     return;
@@ -264,8 +261,7 @@ void server::do_join(std::vector<std::string> &command, client &clt) {
     keys_list = split_line(command[2], ",");
   for (size_t i = 0; i < chan_list.size(); i++) {
     if (chan_list[i].at(0) != '#' || chan_list[i].length() <= 1) {
-      send_reply(clt.getFd(),
-                 ERR_NEEDMOREPARAMS(clt.getNickname(), command[0]));
+      send_reply(clt.getFd(), ERR_NEEDMOREPARAMS(clt.getNickname(), command[0]));
       continue;
     }
     chan_list[i].erase(0, 1);
@@ -277,12 +273,9 @@ void server::do_join(std::vector<std::string> &command, client &clt) {
       if (channels[j].getName().compare(chan_list[i]) == 0) {
         // check channel modes
         if (channels[j].c_modes[INVITE_ONLY_M])
-          send_reply(clt.getFd(),
-                     ERR_INVITEONLYCHAN(clt.getNickname(), chan_list[i]));
-        else if (channels[j].c_modes[USER_LIMIT_M] &&
-                 channels[j].getSize() == channels[j].getUserLimit())
-          send_reply(clt.getFd(),
-                     ERR_CHANNELISFULL(clt.getNickname(), chan_list[i]));
+          send_reply(clt.getFd(), ERR_INVITEONLYCHAN(clt.getNickname(), chan_list[i]));
+        else if (channels[j].c_modes[USER_LIMIT_M] && channels[j].getSize() == channels[j].getUserLimit())
+          send_reply(clt.getFd(), ERR_CHANNELISFULL(clt.getNickname(), chan_list[i]));
         else
           channels[j].c_join(clt, c_key);
         break;
@@ -290,19 +283,11 @@ void server::do_join(std::vector<std::string> &command, client &clt) {
     }
     if (j == channels.size()) {
       // create channel and add the user to it
-      // <<<<<<< HEAD
-      //       channel chnl(chan_list[i], clt.getNickname());
-      //       chnl.c_join(clt, "");
-      //       channels.push_back(chnl);
-      //       std::cout << "channel " << chnl.getName() << std::endl;
-      // =======
-      if (chan_list[i].find(",") != std::string::npos ||
-          chan_list[i].find("\a") != std::string::npos)
+      if (chan_list[i].find(",") != std::string::npos || chan_list[i].find("\a") != std::string::npos)
         return;
       channel chnl(chan_list[i], clt);
       chnl.c_join(clt, "");
       channels.push_back(chnl);
-      // >>>>>>> origin/ahamou
     }
   }
 }
@@ -445,8 +430,6 @@ void server::do_kick(std::vector<std::string> &command, client &clt,
     size_t i = 0;
     for (; i < channels.size(); i++) {
       if (channels[i].getName().compare(command[1]) == 0) {
-        std::cout << "=====" << channels[i].getUserIndex(clt.getNickname())
-                  << "=====" << std::endl;
         if (channels[i].getUserIndex(clt.getNickname()) == NOT_VALID)
           return send_reply(clt.getFd(),
                             ERR_NOTONCHANNEL(clt.getNickname(), command[1]));
@@ -544,19 +527,6 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
   if (i == channels.size())
     return send_reply(clt.getFd(),
                       ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
-  if (command.size() == 2) {
-    std::string modes;
-    if (channels[i].c_modes[INVITE_ONLY_M])
-      modes += "i";
-    if (channels[i].c_modes[TOPIC_RESTRICTION_M])
-      modes += "t";
-    if (channels[i].c_modes[CHANNEL_KEY_M])
-      modes += "k";
-    if (channels[i].c_modes[USER_LIMIT_M])
-      modes += "l";
-    return send_reply(clt.getFd(),
-                      RPL_CHANNELMODEIS(clt.getNickname(), command[1], modes));
-  }
   if (command.size() == 3) {
     if (channels[i].getOperatorIndex(clt.getNickname()) == -1)
       return send_reply(clt.getFd(),
@@ -595,13 +565,32 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
     } else if (command[2].compare("+o") == 0) {
       int clt_index = channels[i].getUserIndex(command[3]);
       if (clt_index != -1)
+      {
         channels[i].addAsOperator(clt_index);
+        send_reply(channels[i].user_fd(command[3]), RPL_MODE(command[3], "+o"));
+      }
+      return ;
     } else if (command[2].compare("-o") == 0) {
       int op_index = channels[i].getOperatorIndex(command[3]);
       if (op_index != -1)
+      {
         channels[i].eraseOperator(op_index);
+        send_reply(channels[i].user_fd(command[3]), RPL_MODE(command[3], "-o"));
+      }
+      return ;
     }
   }
+  std::string modes;
+  if (channels[i].c_modes[INVITE_ONLY_M])
+    modes += "i";
+  if (channels[i].c_modes[TOPIC_RESTRICTION_M])
+    modes += "t";
+  if (channels[i].c_modes[CHANNEL_KEY_M])
+    modes += "k";
+  if (channels[i].c_modes[USER_LIMIT_M])
+    modes += "l";
+  return send_reply(clt.getFd(),
+                    RPL_CHANNELMODEIS(clt.getNickname(), command[1], modes));
 }
 
 void server::send_pong(std::vector<std::string> &command, client &clt) {
@@ -629,6 +618,8 @@ void server::channel_cmds(std::string line, client &clt) {
     do_mode(command, clt);
   else if (command[0].compare("PING") == 0)
     send_pong(command, clt);
+  else if (command[0].compare("QUIT") == 0)
+    deleteClientData(clt);
   else if (command[0].compare("NICK") != 0 && command[0].compare("USER") != 0 &&
            command[0].compare("PASS") != 0)
     send_reply(clt.getFd(), ERR_UNKNOWNCOMMAND(clt.getNickname(), command[0]));

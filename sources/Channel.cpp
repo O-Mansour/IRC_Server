@@ -55,11 +55,9 @@ void channel::c_join(client &clt, std::string k) {
       clients.push_back(&clt);
       send_reply(clt.getFd(), RPL_JOIN(clt.getNickname(), this->name));
       if (!this->topic.empty())
-        send_reply(clt.getFd(),
-                   RPL_TOPIC(clt.getNickname(), this->name, this->topic));
+        send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), this->name, this->topic));
       std::string clients_list = getClientsList();
-      send_reply(clt.getFd(),
-                 RPL_NAMREPLY(clt.getNickname(), this->name, clients_list));
+      send_reply(clt.getFd(), RPL_NAMREPLY(clt.getNickname(), this->name, clients_list));
       send_reply(clt.getFd(), RPL_ENDOFNAMES(clt.getNickname(), this->name));
     }
   } else
@@ -98,9 +96,8 @@ void channel::c_privmsg(client &clt, std::string key) {
 }
 
 void channel::msgToAllMemebers(std::string key) {
-  for (size_t i = 0; i < clients.size(); i++) {
+  for (size_t i = 0; i < clients.size(); i++)
     send_reply(clients[i]->getFd(), key);
-  }
 }
 
 int channel::getUserIndex(const std::string &nick) {

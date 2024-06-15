@@ -44,7 +44,7 @@
 # define ERR_USERNOTINCHANNEL(client, nickname, channel) (":localhost 441 " + client + " " + nickname + " #" + channel + " :They aren't on that channel\r\n")
 //JOIN :
 # define ERR_BADCHANNELKEY(nick, channel) (":localhost 475 " + nick + " #" + channel + " :Cannot join channel (+k)\r\n")
-# define RPL_JOIN(nick, channel) (":" + nick + "@localhost JOIN :#" +  channel + "\r\n")
+# define RPL_JOIN(nick, channel) (":" + nick + "@localhost JOIN :#" + channel + "\r\n")
 # define RPL_NAMREPLY(nick, channel, nicks_list) (":localhost 353 " + nick + " = #" + channel + " :" + nicks_list + "\r\n")
 # define RPL_ENDOFNAMES(nick, channel) (":localhost 366 " + nick + " #" + channel + " :End of /NAMES list\r\n")
 # define ERR_INVITEONLYCHAN(nick, channel) (":localhost 473 " + nick + " #" + channel + " :Cannot join channel (+i)\r\n")
@@ -55,14 +55,16 @@
 # define RPL_NOTOPIC(nick, channel) (":localhost 331 " + nick + " #" + channel + " :No topic is set\r\n")
 
 // MODE
+# define RPL_MODE(nick, mode) (":" + nick + "@localhost MODE :" + mode + "\r\n")
 # define ERR_UMODEUNKNOWNFLAG(nick) (":localhost 501 " + nick + " :Unknown MODE flag\r\n")
 # define RPL_CHANNELMODEIS(nick, channel, modes) (":localhost 324 " + nick + " #" + channel + " +" + modes + "\r\n")
 
+// QUIT
+# define RPL_QUIT(nick, reason) (":" + nick + "@localhost QUIT :Quit: " + reason + "\r\n")
+
 //UNKOWN
 # define ERR_UNKNOWNCOMMAND(nick, command) (":localhost 421 " + nick + " " + command + " :Unknown command\r\n")
-
 # define RPL_PART(client, channel, reason) (":" + client + "@localhost PART #" + channel + " " + (reason.empty() ? "." : reason ) + "\r\n")
-
 
 //kick
 // #define RPL_KICK(client,kicked,channel,reason)(":" + client + "!~h@localhost Kicked " + kicked + " from #" + channel + " [" + reason + "]\r\n")
