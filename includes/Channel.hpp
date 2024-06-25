@@ -32,7 +32,7 @@ private:
   bool isBotJoined;
 
 public:
-  channel(std::string n, client &opr);
+  channel(std::string n, client *opr);
   ~channel();
   bool c_modes[4];
   std::string getName() const;
@@ -40,7 +40,7 @@ public:
   void setTopic(const std::string t);
   size_t getSize();
   bool getCltFd(int fd);
-  void c_join(client &clt, std::string key);
+  void c_join(client *clt, std::string key);
   void c_privmsg(client &clt, std::string key);
   int getUserIndex(const std::string &nick);
   void msgToAllMemebers(std::string key);
