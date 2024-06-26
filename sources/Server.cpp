@@ -251,6 +251,8 @@ void server::do_join(std::vector<std::string> &command, client *clt) {
       int uIndex = channels[i].getUserIndex(clt->getNickname());
       if (uIndex != NOT_VALID) {
         channels[i].remove_user(uIndex, clt->getNickname());
+        if (channels[i].getSize() == 0)
+          channels.erase(channels.begin() + i);
         send_reply(clt->getFd(), RPL_PART(clt->getNickname(), channels[i].getName(), std::string("Good bye")));
       }
     }
@@ -565,18 +567,18 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
       }
     } else if (command[2].compare("+o") == 0) {
       int clt_index = channels[i].getUserIndex(command[3]);
-      if (clt_index != -1)
+      if (clt_index != NOT_VALID)
       {
         channels[i].addAsOperator(clt_index);
-        send_reply(channels[i].user_fd(command[3]), RPL_MODE(command[3], "+o"));
+        channels[i].msgToAllMemebers(RPL_MODE(channels[i].getName(), "+o", command[3]));
       }
       return ;
     } else if (command[2].compare("-o") == 0) {
       int op_index = channels[i].getOperatorIndex(command[3]);
-      if (op_index != -1)
+      if (op_index != NOT_VALID)
       {
         channels[i].eraseOperator(op_index);
-        send_reply(channels[i].user_fd(command[3]), RPL_MODE(command[3], "-o"));
+        channels[i].msgToAllMemebers(RPL_MODE(channels[i].getName(), "-o", command[3]));
       }
       return ;
     }

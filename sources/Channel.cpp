@@ -31,7 +31,9 @@ void channel::eraseOperator(int op_index) {
 }
 
 void channel::addAsOperator(int clt_index) {
-  operators.push_back(clients[clt_index]);
+  // check if he is not an operator already
+  if (getOperatorIndex(clients[clt_index]->getNickname()) == NOT_VALID)
+    operators.push_back(clients[clt_index]);
 }
 
 int channel::getOperatorIndex(const std::string &nick) const {

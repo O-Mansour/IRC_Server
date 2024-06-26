@@ -55,7 +55,7 @@
 # define RPL_NOTOPIC(nick, channel) (":localhost 331 " + nick + " #" + channel + " :No topic is set\r\n")
 
 // MODE
-# define RPL_MODE(nick, mode) (":" + nick + "@localhost MODE :" + mode + "\r\n")
+# define RPL_MODE(channel, mode, user) (":localhost MODE #" + channel + " " + mode + " " + user + "\r\n")
 # define ERR_UMODEUNKNOWNFLAG(nick) (":localhost 501 " + nick + " :Unknown MODE flag\r\n")
 # define RPL_CHANNELMODEIS(nick, channel, modes) (":localhost 324 " + nick + " #" + channel + " +" + modes + "\r\n")
 
