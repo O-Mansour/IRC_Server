@@ -11,7 +11,7 @@ Dcc::Dcc(client clt) : clt(clt) {
   //
 }
 
-void Dcc::setData(std::string message, std::vector<client> clients) {
+void Dcc::setData(std::string message, std::vector<client*> clients) {
   this->cltMessage = message;
   this->clients = clients;
   this->parseMessage(); // calling the parser
@@ -53,9 +53,9 @@ int Dcc::getCltFd() const {
  * */
 bool Dcc::findClient(std::string name) {
 
-  for (clt_it it = this->clients.begin(); it != this->clients.end(); it++) {
-    if (it->getNickname() == name) {
-      this->foundCltFd = it->getFd();
+  for (size_t i = 0; i < this->clients.size(); i++) {
+    if (clients[i]->getNickname() == name) {
+      this->foundCltFd = clients[i]->getFd();
       return true;
     }
   }

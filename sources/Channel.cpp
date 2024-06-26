@@ -1,13 +1,11 @@
 #include "../includes/Channel.hpp"
-#include "Server.hpp"
-#include <sstream>
 #include <string>
 
-channel::channel(std::string n, client &opr) : name(n), userLimit(0) {
+channel::channel(std::string n, client *opr) : name(n), userLimit(0) {
   this->isBotJoined = false;
   for (int i = 0; i < 4; i++)
     c_modes[i] = false;
-  operators.push_back(&opr);
+  operators.push_back(opr);
 }
 
 channel::~channel() {}
@@ -44,24 +42,24 @@ int channel::getOperatorIndex(const std::string &nick) const {
   return -1;
 }
 
-void channel::c_join(client &clt, std::string k) {
+void channel::c_join(client *clt, std::string k) {
   if (this->key.empty() || this->key.compare(k) == 0) {
     size_t i;
     for (i = 0; i < clients.size(); i++) {
-      if (clt.getFd() == clients[i]->getFd())
+      if (clt->getFd() == clients[i]->getFd())
         break;
     }
     if (i == clients.size()) {
-      clients.push_back(&clt);
-      send_reply(clt.getFd(), RPL_JOIN(clt.getNickname(), this->name));
+      clients.push_back(clt);
+      send_reply(clt->getFd(), RPL_JOIN(clt->getNickname(), this->name));
       if (!this->topic.empty())
-        send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), this->name, this->topic));
+        send_reply(clt->getFd(), RPL_TOPIC(clt->getNickname(), this->name, this->topic));
       std::string clients_list = getClientsList();
-      send_reply(clt.getFd(), RPL_NAMREPLY(clt.getNickname(), this->name, clients_list));
-      send_reply(clt.getFd(), RPL_ENDOFNAMES(clt.getNickname(), this->name));
+      send_reply(clt->getFd(), RPL_NAMREPLY(clt->getNickname(), this->name, clients_list));
+      send_reply(clt->getFd(), RPL_ENDOFNAMES(clt->getNickname(), this->name));
     }
   } else
-    send_reply(clt.getFd(), ERR_BADCHANNELKEY(clt.getNickname(), this->name));
+    send_reply(clt->getFd(), ERR_BADCHANNELKEY(clt->getNickname(), this->name));
 }
 
 bool channel::getCltFd(int fd) {

@@ -105,7 +105,7 @@ private:
   std::string password;
   int s_socket;
   std::vector<struct pollfd> poll_fds;
-  std::vector<client> clients;
+  std::vector<client*> clients;
   std::map<int, std::string> read_buffer;
   std::vector<channel> channels;
 
@@ -117,16 +117,16 @@ public:
   ~server();
   void start();
   void CreateClient();
-  void HandleData(client &clt);
-  void deleteClientData(client &clt);
-  void execute_cmds(client &clt);
+  void HandleData(client *clt);
+  void deleteClientData(client *clt);
+  void execute_cmds(client *clt);
   void authenticate_cmds(std::string line, client &clt);
   void check_password(std::vector<std::string> &command, client &clt);
   void check_nickname(std::vector<std::string> &command, client &clt);
   void check_username(std::vector<std::string> &command, client &clt,
                       std::string &line);
-  void channel_cmds(std::string line, client &clt);
-  void do_join(std::vector<std::string> &command, client &clt);
+  void channel_cmds(std::string line, client *clt);
+  void do_join(std::vector<std::string> &command, client *clt);
   void do_privmsg(std::vector<std::string> &command, client &clt,
                   std::string line);
   void do_topic(std::vector<std::string> &command, client &clt,
@@ -138,7 +138,7 @@ public:
   void send_pong(std::vector<std::string> &command, client &clt);
   void register_user(client &clt);
 
-  std::vector<client> getClients() const;
+  std::vector<client*> getClients() const;
 };
 void send_reply(int fd, std::string str);
 
