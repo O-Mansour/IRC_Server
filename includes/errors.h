@@ -53,6 +53,7 @@
 // TOPIC
 # define RPL_TOPIC(nick, channel, topic) (":localhost 332 " + nick + " #" + channel + " :" + topic + "\r\n")
 # define RPL_NOTOPIC(nick, channel) (":localhost 331 " + nick + " #" + channel + " :No topic is set\r\n")
+# define TOPIC_TO_ALL(nick, channel, topic) (":" + nick + "@localhost TOPIC #" + channel + " :" + topic + "\r\n")
 
 // MODE
 # define RPL_MODE(channel, mode, user) (":localhost MODE #" + channel + " " + mode + " " + user + "\r\n")
@@ -64,7 +65,7 @@
 
 //UNKOWN
 # define ERR_UNKNOWNCOMMAND(nick, command) (":localhost 421 " + nick + " " + command + " :Unknown command\r\n")
-# define RPL_PART(client, channel, reason) (":" + client + "@localhost PART #" + channel + " " + (reason.empty() ? "." : reason ) + "\r\n")
+# define RPL_PART(client, channel, reason) (":" + client + "@localhost PART #" + channel + " " + reason + "\r\n")
 
 //kick
 // #define RPL_KICK(client,kicked,channel,reason)(":" + client + "!~h@localhost Kicked " + kicked + " from #" + channel + " [" + reason + "]\r\n")

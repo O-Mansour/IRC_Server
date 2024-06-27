@@ -253,7 +253,7 @@ void server::do_join(std::vector<std::string> &command, client *clt) {
         channels[i].remove_user(uIndex, clt->getNickname());
         if (channels[i].getSize() == 0)
           channels.erase(channels.begin() + i);
-        send_reply(clt->getFd(), RPL_PART(clt->getNickname(), channels[i].getName(), std::string("Good bye")));
+        send_reply(clt->getFd(), RPL_PART(clt->getNickname(), channels[i].getName(), std::string("Leaving all channels")));
       }
     }
     return;
@@ -474,26 +474,22 @@ void server::do_topic(std::vector<std::string> &command, client &clt,
       break;
   }
   if (i == channels.size())
-    return send_reply(clt.getFd(),
-                      ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
+    return send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
   if (command.size() == 2) {
     // TOPIC #channelname
     if (channels[i].getTopic().empty())
       send_reply(clt.getFd(), RPL_NOTOPIC(clt.getNickname(), command[1]));
     else
-      send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), command[1],
-                                        channels[i].getTopic()));
-  } else if (command.size() > 2 && command[2].at(0) == ':') {
+      send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), command[1], channels[i].getTopic()));
+  }
+  else if (command.size() > 2 && command[2].at(0) == ':') {
     // TOPIC #channelname :new topic
-    if (!channels[i].c_modes[TOPIC_RESTRICTION_M] ||
-        (channels[i].c_modes[TOPIC_RESTRICTION_M] &&
-         channels[i].getOperatorIndex(clt.getNickname()) != -1)) {
+    if (!channels[i].c_modes[TOPIC_RESTRICTION_M] || channels[i].getOperatorIndex(clt.getNickname()) != NOT_VALID) {
       std::string new_topic = extract_param(command, line, 2);
       channels[i].setTopic(new_topic);
-      channels[i].topicToAllMembers(clt, new_topic);
+      channels[i].msgToAllMemebers(TOPIC_TO_ALL(clt.getNickname(), command[1], new_topic));
     } else
-      send_reply(clt.getFd(),
-                 ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
+      send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
   }
 }
 
