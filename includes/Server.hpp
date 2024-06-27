@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
+#include <csignal>
 
 //=========Errors===============
 // Welcome

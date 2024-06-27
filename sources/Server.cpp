@@ -225,7 +225,7 @@ void server::check_username(std::vector<std::string> &command, client &clt,
 
 void server::authenticate_cmds(std::string line, client &clt) {
   std::string reply;
-  std::vector<std::string> command = split_line(line, " \t");
+  std::vector<std::string> command = split_line(line, " \t\r");
   if (command[0].compare("PASS") == 0)
     return check_password(command, clt);
   if (command[0].compare("NICK") == 0 && clt.authentication[0])
@@ -602,7 +602,7 @@ void server::send_pong(std::vector<std::string> &command, client &clt) {
 }
 
 void server::channel_cmds(std::string line, client *clt) {
-  std::vector<std::string> command = split_line(line, " \t");
+  std::vector<std::string> command = split_line(line, " \t\r");
   if (command[0].compare("JOIN") == 0)
     do_join(command, clt);
   else if (command[0].compare("PRIVMSG") == 0)
@@ -627,7 +627,7 @@ void server::channel_cmds(std::string line, client *clt) {
 void server::execute_cmds(client *clt) {
   size_t pos;
   std::string line;
-  while ((pos = read_buffer[clt->getFd()].find("\r\n")) != std::string::npos) {
+  while ((pos = read_buffer[clt->getFd()].find("\n")) != std::string::npos) {
     line = read_buffer[clt->getFd()].substr(0, pos);
     std::cout << YELLOW << "line to parse : " << RESET;
     std::cout << line << std::endl;
@@ -637,7 +637,7 @@ void server::execute_cmds(client *clt) {
           clt->authentication[2])
         channel_cmds(line, clt);
     }
-    read_buffer[clt->getFd()].erase(0, pos + 2);
+    read_buffer[clt->getFd()].erase(0, pos + 1);
   }
 }
 

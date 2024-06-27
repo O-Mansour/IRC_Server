@@ -28,4 +28,4 @@ fclean : clean
 re : fclean all
 
 run :
-	make && make clean > /dev/null && clear && echo "Compiled successufly..."
+	make && make clean > /dev/null && clear && ./$(NAME) 6667 ok
