@@ -74,7 +74,6 @@ void server::deleteClientData(client *clt) {
     if (clients[i]->getFd() == clt->getFd())
       clients.erase(clients.begin() + i);
   }
-  send_reply(clt->getFd(), RPL_QUIT(clt->getNickname(), "left the server"));
   close(clt->getFd());
   delete clt;
 }
@@ -618,7 +617,10 @@ void server::channel_cmds(std::string line, client *clt) {
   else if (command[0].compare("PING") == 0)
     send_pong(command, *clt);
   else if (command[0].compare("QUIT") == 0)
+  {
+    send_reply(clt->getFd(), RPL_QUIT(clt->getNickname(), "left the server"));
     deleteClientData(clt);
+  }
   else if (command[0].compare("NICK") != 0 && command[0].compare("USER") != 0 &&
            command[0].compare("PASS") != 0)
     send_reply(clt->getFd(), ERR_UNKNOWNCOMMAND(clt->getNickname(), command[0]));
