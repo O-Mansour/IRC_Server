@@ -1,14 +1,4 @@
 #include "../includes/Server.hpp"
-#include "../includes/Bot.hpp"
-#include "Dcc.hpp"
-#include "errors.h"
-#include <cstddef>
-#include <cstring>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <sys/types.h>
-#include <vector>
 
 server::server(int p, std::string pass)
     : port(p), password(pass), bot("lhaj", "lhaj Molshi", "lhaj") {
@@ -186,8 +176,10 @@ void server::check_nickname(std::vector<std::string> &command, client &clt) {
       }
     }
     if (i == clients.size()) {
-      for (size_t j = 0; j < clients.size(); j++)
-        send_reply(clients[j]->getFd(), RPL_NICK(clt.getNickname(), command[1]));
+      if (clt.authentication[1]){
+        for (size_t j = 0; j < clients.size(); j++)
+          send_reply(clients[j]->getFd(), RPL_NICK(clt.getNickname(), command[1]));
+      }
       clt.setNickname(command[1]);
       clt.authentication[1] = true;
     }
@@ -600,7 +592,7 @@ void server::send_pong(std::vector<std::string> &command, client &clt) {
                "PONG " + std::string(SERVER_NAME) + " " + command[1] + "\r\n");
 }
 
-void server::channel_cmds(std::string line, client *clt) {
+int server::channel_cmds(std::string line, client *clt) {
   std::vector<std::string> command = split_line(line, " \t\r");
   if (command[0].compare("JOIN") == 0)
     do_join(command, clt);
@@ -618,12 +610,18 @@ void server::channel_cmds(std::string line, client *clt) {
     send_pong(command, *clt);
   else if (command[0].compare("QUIT") == 0)
   {
-    send_reply(clt->getFd(), RPL_QUIT(clt->getNickname(), "left the server"));
+    for (size_t j = 0; j < clients.size(); j++)
+    {
+      if (clients[j]->getFd() != clt->getFd())
+        send_reply(clients[j]->getFd(), RPL_QUIT(clt->getNickname(), "left the server"));
+    }
     deleteClientData(clt);
+    return 1;
   }
   else if (command[0].compare("NICK") != 0 && command[0].compare("USER") != 0 &&
            command[0].compare("PASS") != 0)
     send_reply(clt->getFd(), ERR_UNKNOWNCOMMAND(clt->getNickname(), command[0]));
+  return 0;
 }
 
 void server::execute_cmds(client *clt) {
@@ -635,9 +633,9 @@ void server::execute_cmds(client *clt) {
     std::cout << line << std::endl;
     if (!line.empty()) {
       authenticate_cmds(line, *clt);
-      if (clt->authentication[0] && clt->authentication[1] &&
-          clt->authentication[2])
-        channel_cmds(line, clt);
+      if (clt->authentication[0] && clt->authentication[1] && clt->authentication[2])
+        if (channel_cmds(line, clt) == 1)
+          break ;
     }
     read_buffer[clt->getFd()].erase(0, pos + 1);
   }
