@@ -1,4 +1,4 @@
-#include "includes/Server.hpp"
+#include "Server.hpp"
 
 server constructServer(std::string port, std::string password) {
   if (port.empty() || password.empty())

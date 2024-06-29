@@ -20,14 +20,10 @@ void Dcc::setData(std::string message, std::vector<client*> clients) {
 void Dcc::parseMessage() {
   this->clientResponce.erase();
   std::string name;
-  std::cout << "Message set by client(" << this->clt.getUsername()
-            << "): " << this->cltMessage << " ." << std::endl;
   // search for user if available
   std::vector<std::string> keys = splitString(this->cltMessage, ' ');
 
   name = keys.at(1);
-
-  std::cout << "User: " << name << std::endl;
 
   if (!this->findClient(name) && this->clt.getNickname() != name) {
     this->clientResponce = ":localhost 401 " + this->clt.getNickname() + " " +

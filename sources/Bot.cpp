@@ -1,5 +1,5 @@
-#include "../includes/Bot.hpp"
-#include "../includes/Bot_utils.hpp"
+#include "Bot.hpp"
+#include "Bot_utils.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -22,7 +22,6 @@ void Bot::handleMessage() {}
 
 void Bot::setMessage(std::string message) {
   this->message = message;
-  std::cout << "Bot_setMessage -> '" << message << "'" << std::endl;
 }
 
 std::string Bot::getResponse(std::string channelName) {
@@ -70,7 +69,6 @@ bool Bot::parseMessage() {
 
 bool Bot::barWordChecker() {
   std::vector<std::string> tmp = splitString(this->message, ' ');
-  std::cout << "count tmp -> " << tmp.size() << std::endl;
   std::stringstream ss;
 
   if (tmp.empty())
@@ -78,7 +76,6 @@ bool Bot::barWordChecker() {
 
   vec_it it;
   for (it = tmp.begin(); it != tmp.end(); ++it) {
-    std::cout << "checking now" << *it << std::endl;
     if (std::find(this->badWords.begin(), this->badWords.end(), *it) !=
         this->badWords.end()) {
       this->badRes = "-2";

@@ -30,9 +30,11 @@
        ":<realname>\r\n")
 
 // PRIVMSG
-# define RPL_PRIVMSG(nick, target, message) (":" + nick + "!@localhost PRIVMSG " + target + " :" + message + "\r\n")
+# define RPL_PRIVMSG(nick, target, message) (":" + nick + "!@localhost PRIVMSG " + target + " " + message + "\n")
+# define ERR_CANNOTSENDTOCHAN(nick,channel) (":localhost 404 " + nick + " #" + channel + " :Cannot send to channel\n")
 
-# define ERR_NOSUCHNICK(client,nickname) (":localhost 401 " + client + " " + nickname + " No such nick/channel\r\n")
+
+# define ERR_NOSUCHNICK(client,nickname) (":localhost 401 " + client + " " + nickname + " :No such nick/channel\r\n")
 # define ERR_NOSUCHCHANNEL(client, channel) (":localhost 403 " + client + " #" + channel + " :No such channel\r\n")
 # define ERR_USERONCHANNEL(client,nickname, channel)(":localhost 443 "+ client + " " + nickname + " #" + channel + " :is already on channel\r\n")
 # define ERR_CHANOPRIVSNEEDED(client, channel)(":localhost 482 " + client + " #" + channel + " :You're not channel operator\r\n")
@@ -50,7 +52,7 @@
 // TOPIC
 # define RPL_TOPIC(nick, channel, topic) (":localhost 332 " + nick + " #" + channel + " :" + topic + "\r\n")
 # define RPL_NOTOPIC(nick, channel) (":localhost 331 " + nick + " #" + channel + " :No topic is set\r\n")
-# define TOPIC_TO_ALL(nick, channel, topic) (":" + nick + "@localhost TOPIC #" + channel + " :" + topic + "\r\n")
+# define TOPIC_TO_ALL(nick, channel, topic) (":" + nick + "@localhost TOPIC #" + channel + " :" + topic + "\n")
 
 // MODE
 # define RPL_MODE(channel, mode, user) (":localhost MODE #" + channel + " " + mode + " " + user + "\r\n")
