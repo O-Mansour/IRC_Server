@@ -83,7 +83,7 @@ void channel::c_privmsg(client &clt, std::string key) {
   //                       this->getName() + " :" + key + "\n";
   for (size_t i = 0; i < clients.size(); i++) {
     if (clt.getFd() != clients[i]->getFd())
-      send_reply(clients[i]->getFd(), RPL_PRIVMSG(clt.getNickname(), this->getName(), key));
+      send_reply(clients[i]->getFd(), RPL_PRIVMSG(clt.getNickname(), "#" + this->getName(), key));
   }
 }
 

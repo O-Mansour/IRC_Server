@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "replies.hpp"
 
 void server::do_privmsg(std::vector<std::string> &command, client &clt,
                         std::string line) {
@@ -11,8 +12,10 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
       line = extract_param(command, line, 2);
       for (i = 0; i < channels.size(); i++) {
         if (channels[i].getName().compare(command[1]) == 0) {
+					if (channels[i].getUserIndex(clt.getNickname()) == NOT_VALID)
+						return send_reply(clt.getFd(), ERR_CANNOTSENDTOCHAN(clt.getNickname(), command[1]));
           channels[i].c_privmsg(clt, line);
-          // TODO: if the bot joined channel. check forward messages to bot
+          // TODO: if the bot joined a channel. check forward messages to bot
           if (channels[i].getIsBotJoined()) {
             this->bot.setMessage(line);
             std::string msg = this->bot.getResponse(channels[i].getName());
