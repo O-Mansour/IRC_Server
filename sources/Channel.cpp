@@ -1,5 +1,5 @@
-#include "../includes/Channel.hpp"
-#include <string>
+#include "Channel.hpp"
+#include "replies.hpp"
 
 channel::channel(std::string n, client *opr) : name(n), userLimit(0) {
   this->isBotJoined = false;
@@ -79,11 +79,11 @@ bool channel::check_nickname(std::string str) {
 }
 
 void channel::c_privmsg(client &clt, std::string key) {
-  std::string msg_str = ":" + clt.getNickname() + "!@localhost PRIVMSG #" +
-                        this->getName() + " :" + key + "\n";
+  // std::string msg_str = ":" + clt.getNickname() + "!@localhost PRIVMSG #" +
+  //                       this->getName() + " :" + key + "\n";
   for (size_t i = 0; i < clients.size(); i++) {
     if (clt.getFd() != clients[i]->getFd())
-      send_reply(clients[i]->getFd(), msg_str);
+      send_reply(clients[i]->getFd(), RPL_PRIVMSG(clt.getNickname(), this->getName(), key));
   }
 }
 

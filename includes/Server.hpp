@@ -87,8 +87,10 @@ public:
 
   std::vector<client*> getClients() const;
 };
-void send_reply(int fd, std::string str);
 
+void send_reply(int fd, std::string str);
 void print_time();
 std::string print_time_welcome();
 void print_ft_irc();
+std::string extract_param(std::vector<std::string> &command, std::string line,int argIndex);
+std::vector<std::string> split_line(std::string line, std::string del);

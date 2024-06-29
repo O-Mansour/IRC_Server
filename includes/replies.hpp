@@ -30,7 +30,7 @@
        ":<realname>\r\n")
 
 // PRIVMSG
-# define RPL_PRIVMSG(nick, target, message) (":" + nick + "!@localhost PRIVMSG " + target + " :" + message + "\r\n")
+# define RPL_PRIVMSG(nick, target, message) (":" + nick + "!@localhost PRIVMSG " + target + " :" + message + "\n")
 
 # define ERR_NOSUCHNICK(client,nickname) (":localhost 401 " + client + " " + nickname + " No such nick/channel\r\n")
 # define ERR_NOSUCHCHANNEL(client, channel) (":localhost 403 " + client + " #" + channel + " :No such channel\r\n")
