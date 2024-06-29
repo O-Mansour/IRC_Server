@@ -31,7 +31,9 @@ void channel::eraseOperator(int op_index) {
 }
 
 void channel::addAsOperator(int clt_index) {
-  operators.push_back(clients[clt_index]);
+  // check if he is not an operator already
+  if (getOperatorIndex(clients[clt_index]->getNickname()) == NOT_VALID)
+    operators.push_back(clients[clt_index]);
 }
 
 int channel::getOperatorIndex(const std::string &nick) const {
@@ -74,14 +76,6 @@ bool channel::check_nickname(std::string str) {
     if (str.compare(clients[i]->getNickname()) == 0)
       return true;
   return false;
-}
-
-void channel::topicToAllMembers(client &clt, std::string key) {
-  std::string msg_str = ":" + clt.getNickname() + "!@localhost TOPIC #" +
-                        this->getName() + " :" + key + "\n";
-  for (size_t i = 0; i < clients.size(); i++) {
-    write(clients[i]->getFd(), msg_str.c_str(), msg_str.length());
-  }
 }
 
 void channel::c_privmsg(client &clt, std::string key) {

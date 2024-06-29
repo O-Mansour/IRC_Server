@@ -1,14 +1,4 @@
 #include "../includes/Server.hpp"
-#include "../includes/Bot.hpp"
-#include "Dcc.hpp"
-#include "errors.h"
-#include <cstddef>
-#include <cstring>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <sys/types.h>
-#include <vector>
 
 server::server(int p, std::string pass)
     : port(p), password(pass), bot("lhaj", "lhaj Molshi", "lhaj") {
@@ -74,7 +64,6 @@ void server::deleteClientData(client *clt) {
     if (clients[i]->getFd() == clt->getFd())
       clients.erase(clients.begin() + i);
   }
-  send_reply(clt->getFd(), RPL_QUIT(clt->getNickname(), "left the server"));
   close(clt->getFd());
   delete clt;
 }
@@ -187,8 +176,10 @@ void server::check_nickname(std::vector<std::string> &command, client &clt) {
       }
     }
     if (i == clients.size()) {
-      for (size_t j = 0; j < clients.size(); j++)
-        send_reply(clients[j]->getFd(), RPL_NICK(clt.getNickname(), command[1]));
+      if (clt.authentication[1]){
+        for (size_t j = 0; j < clients.size(); j++)
+          send_reply(clients[j]->getFd(), RPL_NICK(clt.getNickname(), command[1]));
+      }
       clt.setNickname(command[1]);
       clt.authentication[1] = true;
     }
@@ -225,7 +216,7 @@ void server::check_username(std::vector<std::string> &command, client &clt,
 
 void server::authenticate_cmds(std::string line, client &clt) {
   std::string reply;
-  std::vector<std::string> command = split_line(line, " \t");
+  std::vector<std::string> command = split_line(line, " \t\r");
   if (command[0].compare("PASS") == 0)
     return check_password(command, clt);
   if (command[0].compare("NICK") == 0 && clt.authentication[0])
@@ -251,7 +242,9 @@ void server::do_join(std::vector<std::string> &command, client *clt) {
       int uIndex = channels[i].getUserIndex(clt->getNickname());
       if (uIndex != NOT_VALID) {
         channels[i].remove_user(uIndex, clt->getNickname());
-        send_reply(clt->getFd(), RPL_PART(clt->getNickname(), channels[i].getName(), std::string("Good bye")));
+        if (channels[i].getSize() == 0)
+          channels.erase(channels.begin() + i);
+        send_reply(clt->getFd(), RPL_PART(clt->getNickname(), channels[i].getName(), std::string("Leaving all channels")));
       }
     }
     return;
@@ -472,26 +465,22 @@ void server::do_topic(std::vector<std::string> &command, client &clt,
       break;
   }
   if (i == channels.size())
-    return send_reply(clt.getFd(),
-                      ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
+    return send_reply(clt.getFd(), ERR_NOSUCHCHANNEL(clt.getNickname(), command[1]));
   if (command.size() == 2) {
     // TOPIC #channelname
     if (channels[i].getTopic().empty())
       send_reply(clt.getFd(), RPL_NOTOPIC(clt.getNickname(), command[1]));
     else
-      send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), command[1],
-                                        channels[i].getTopic()));
-  } else if (command.size() > 2 && command[2].at(0) == ':') {
+      send_reply(clt.getFd(), RPL_TOPIC(clt.getNickname(), command[1], channels[i].getTopic()));
+  }
+  else if (command.size() > 2 && command[2].at(0) == ':') {
     // TOPIC #channelname :new topic
-    if (!channels[i].c_modes[TOPIC_RESTRICTION_M] ||
-        (channels[i].c_modes[TOPIC_RESTRICTION_M] &&
-         channels[i].getOperatorIndex(clt.getNickname()) != -1)) {
+    if (!channels[i].c_modes[TOPIC_RESTRICTION_M] || channels[i].getOperatorIndex(clt.getNickname()) != NOT_VALID) {
       std::string new_topic = extract_param(command, line, 2);
       channels[i].setTopic(new_topic);
-      channels[i].topicToAllMembers(clt, new_topic);
+      channels[i].msgToAllMemebers(TOPIC_TO_ALL(clt.getNickname(), command[1], new_topic));
     } else
-      send_reply(clt.getFd(),
-                 ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
+      send_reply(clt.getFd(), ERR_CHANOPRIVSNEEDED(clt.getNickname(), command[1]));
   }
 }
 
@@ -565,18 +554,18 @@ void server::do_mode(std::vector<std::string> &command, client &clt) {
       }
     } else if (command[2].compare("+o") == 0) {
       int clt_index = channels[i].getUserIndex(command[3]);
-      if (clt_index != -1)
+      if (clt_index != NOT_VALID)
       {
         channels[i].addAsOperator(clt_index);
-        send_reply(channels[i].user_fd(command[3]), RPL_MODE(command[3], "+o"));
+        channels[i].msgToAllMemebers(RPL_MODE(channels[i].getName(), "+o", command[3]));
       }
       return ;
     } else if (command[2].compare("-o") == 0) {
       int op_index = channels[i].getOperatorIndex(command[3]);
-      if (op_index != -1)
+      if (op_index != NOT_VALID)
       {
         channels[i].eraseOperator(op_index);
-        send_reply(channels[i].user_fd(command[3]), RPL_MODE(command[3], "-o"));
+        channels[i].msgToAllMemebers(RPL_MODE(channels[i].getName(), "-o", command[3]));
       }
       return ;
     }
@@ -603,8 +592,8 @@ void server::send_pong(std::vector<std::string> &command, client &clt) {
                "PONG " + std::string(SERVER_NAME) + " " + command[1] + "\r\n");
 }
 
-void server::channel_cmds(std::string line, client *clt) {
-  std::vector<std::string> command = split_line(line, " \t");
+int server::channel_cmds(std::string line, client *clt) {
+  std::vector<std::string> command = split_line(line, " \t\r");
   if (command[0].compare("JOIN") == 0)
     do_join(command, clt);
   else if (command[0].compare("PRIVMSG") == 0)
@@ -620,26 +609,35 @@ void server::channel_cmds(std::string line, client *clt) {
   else if (command[0].compare("PING") == 0)
     send_pong(command, *clt);
   else if (command[0].compare("QUIT") == 0)
+  {
+    for (size_t j = 0; j < clients.size(); j++)
+    {
+      if (clients[j]->getFd() != clt->getFd())
+        send_reply(clients[j]->getFd(), RPL_QUIT(clt->getNickname(), "left the server"));
+    }
     deleteClientData(clt);
+    return 1;
+  }
   else if (command[0].compare("NICK") != 0 && command[0].compare("USER") != 0 &&
            command[0].compare("PASS") != 0)
     send_reply(clt->getFd(), ERR_UNKNOWNCOMMAND(clt->getNickname(), command[0]));
+  return 0;
 }
 
 void server::execute_cmds(client *clt) {
   size_t pos;
   std::string line;
-  while ((pos = read_buffer[clt->getFd()].find("\r\n")) != std::string::npos) {
+  while ((pos = read_buffer[clt->getFd()].find("\n")) != std::string::npos) {
     line = read_buffer[clt->getFd()].substr(0, pos);
     std::cout << YELLOW << "line to parse : " << RESET;
     std::cout << line << std::endl;
     if (!line.empty()) {
       authenticate_cmds(line, *clt);
-      if (clt->authentication[0] && clt->authentication[1] &&
-          clt->authentication[2])
-        channel_cmds(line, clt);
+      if (clt->authentication[0] && clt->authentication[1] && clt->authentication[2])
+        if (channel_cmds(line, clt) == 1)
+          break ;
     }
-    read_buffer[clt->getFd()].erase(0, pos + 2);
+    read_buffer[clt->getFd()].erase(0, pos + 1);
   }
 }
 
