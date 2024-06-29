@@ -33,8 +33,7 @@ void server::check_nickname(std::vector<std::string> &command, client &clt) {
     if (i == clients.size()) {
       if (clt.authentication[1]){
         for (size_t j = 0; j < clients.size(); j++)
-					if (clients[j]->getFd() != clt.getFd())
-          	send_reply(clients[j]->getFd(), RPL_NICK(clt.getNickname(), command[1]));
+					send_reply(clients[j]->getFd(), RPL_NICK(clt.getNickname(), command[1]));
       }
       clt.setNickname(command[1]);
       clt.authentication[1] = true;

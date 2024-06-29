@@ -36,14 +36,10 @@ void server::do_invite(std::vector<std::string> &command, client &clt) {
       if (this->bot.getNickname().compare(command[1]) == 0 &&
           !channels[i].getIsBotJoined()) // adding the bot to the channel
       {
-        std::cout << "adding bot to channel " << std::endl;
         channels[i].setIsBotJoined(true); // bot is officially joinded channel
         return;
       } else if (this->bot.getNickname().compare(command[1]) == 0 &&
                  channels[i].getIsBotJoined()) {
-        std::cout << RED
-                  << "The Bot already joined this channel : " << command[2]
-                  << RESET << std::endl;
         return;
       }
       if (channels[i].check_nickname(command[1]))

@@ -22,7 +22,6 @@ void Bot::handleMessage() {}
 
 void Bot::setMessage(std::string message) {
   this->message = message;
-  std::cout << "Bot_setMessage -> '" << message << "'" << std::endl;
 }
 
 std::string Bot::getResponse(std::string channelName) {
@@ -70,7 +69,6 @@ bool Bot::parseMessage() {
 
 bool Bot::barWordChecker() {
   std::vector<std::string> tmp = splitString(this->message, ' ');
-  std::cout << "count tmp -> " << tmp.size() << std::endl;
   std::stringstream ss;
 
   if (tmp.empty())
