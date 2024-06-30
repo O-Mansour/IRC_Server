@@ -56,7 +56,6 @@ public:
   int getOperatorIndex(const std::string &nick) const;
   std::string getClientsList() const;
 
-  void kick_user_msg(std::string msg);
   // setters and getter for bot
   void setIsBotJoined(bool val);
   bool getIsBotJoined() const;
