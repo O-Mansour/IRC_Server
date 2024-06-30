@@ -16,9 +16,10 @@
 ## Todo (BOT)
 - [x] => implment inviting the bot to a channel.
 - [x] => getting Moderator role
-- [ ] => listen for bad words.
-- [ ] => kick users and reply with reseaon
-- [ ] => !help shows available commands
-- [ ] => !time replies with time
-- [ ] => !quote replies with a quote
-- [ ] => !log shoud log the channel messages `(optional)`
+- [x] => listen for bad words.
+- [x] => kick users and reply with reseaon
+- [x] => !help shows available commands
+- [x] => !quote replies with a quote
+- [x] => !quote replies with a quote
+
+- [ ] => remove channel after a kick, if is empty (channel)
