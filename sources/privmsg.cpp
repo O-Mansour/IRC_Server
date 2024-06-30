@@ -23,12 +23,12 @@ void server::do_privmsg(std::vector<std::string> &command, client &clt,
               channels[i].msgToAllMemebers(msg);
             }
             if (msg.find("-2") != std::string::npos) {
-              channels[i].kick_user_msg(
-                  RPL_KICK(this->bot.getNickname(), channels[i].getName(),
-                           clt.getNickname(), " Dont use bad words"));
+              channels[i].msgToAllMemebers(RPL_KICK(this->bot.getNickname(), channels[i].getName(), clt.getNickname(), " Dont use bad words"));
               int res = channels[i].getUserIndex(clt.getNickname());
               if (res != -1)
                 channels[i].remove_user(res, clt.getNickname());
+              if (channels[i].getSize() == 0)
+                channels.erase(channels.begin() + i);
             }
             return;
           }

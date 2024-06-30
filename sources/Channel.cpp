@@ -78,18 +78,16 @@ bool channel::check_nickname(std::string str) {
   return false;
 }
 
-void channel::c_privmsg(client &clt, std::string key) {
-  // std::string msg_str = ":" + clt.getNickname() + "!@localhost PRIVMSG #" +
-  //                       this->getName() + " :" + key + "\n";
+void channel::c_privmsg(client &clt, std::string msg) {
   for (size_t i = 0; i < clients.size(); i++) {
     if (clt.getFd() != clients[i]->getFd())
-      send_reply(clients[i]->getFd(), RPL_PRIVMSG(clt.getNickname(), "#" + this->getName(), key));
+      send_reply(clients[i]->getFd(), RPL_PRIVMSG(clt.getNickname(), "#" + this->getName(), msg));
   }
 }
 
-void channel::msgToAllMemebers(std::string key) {
+void channel::msgToAllMemebers(std::string msg) {
   for (size_t i = 0; i < clients.size(); i++)
-    send_reply(clients[i]->getFd(), key);
+    send_reply(clients[i]->getFd(), msg);
 }
 
 int channel::getUserIndex(const std::string &nick) {
@@ -106,9 +104,9 @@ void channel::remove_user(int index, const std::string &nick) {
     eraseOperator(getOperatorIndex(nick));
 }
 
-int channel::user_fd(std::string &key) {
+int channel::user_fd(std::string &nick) {
   for (size_t i = 0; i < clients.size(); i++) {
-    if (clients[i]->getNickname().compare(key) == 0)
+    if (clients[i]->getNickname().compare(nick) == 0)
       return clients[i]->getFd();
   }
   return -1;
@@ -124,12 +122,6 @@ std::string channel::getClientsList() const {
     res += clients[i]->getNickname();
   }
   return res;
-}
-
-void channel::kick_user_msg(std::string msg) {
-  for (size_t i = 0; i < this->getSize(); i++) {
-    send_reply(this->clients[i]->getFd(), msg);
-  }
 }
 
 // getters and setter for bot
