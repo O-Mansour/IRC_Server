@@ -124,6 +124,24 @@ std::string channel::getClientsList() const {
   return res;
 }
 
+void channel::addToInvitedFds(int clt_fd) {
+  if (getInviteIndex(clt_fd) == NOT_VALID)
+    invited_fds.push_back(clt_fd);
+}
+
+void channel::removeFromInvitedFds(int index) {
+  invited_fds.erase(invited_fds.begin() + index);
+}
+
+int channel::getInviteIndex(int clt_fd)
+{
+  for (size_t i = 0; i < invited_fds.size(); i++) {
+    if (invited_fds[i] == clt_fd)
+      return i;
+  }
+  return NOT_VALID;
+}
+
 // getters and setter for bot
 bool channel::getIsBotJoined() const { return this->isBotJoined; }
 

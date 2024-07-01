@@ -28,6 +28,7 @@ private:
   size_t size;
   std::vector<client*> clients;
   std::vector<client*> operators;
+  std::vector<int> invited_fds;
 
   bool isBotJoined;
 
@@ -55,6 +56,9 @@ public:
   bool check_nickname(std::string str);
   int getOperatorIndex(const std::string &nick) const;
   std::string getClientsList() const;
+  void  addToInvitedFds(int clt_fd);
+  void  removeFromInvitedFds(int index);
+  int  getInviteIndex(int clt_fd);
 
   // setters and getter for bot
   void setIsBotJoined(bool val);

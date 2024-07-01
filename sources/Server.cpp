@@ -41,8 +41,12 @@ void server::CreateClient() {
 void server::deleteClientData(client *clt) {
   print_time();
   std::cout << RED << "Client with fd : " << clt->getFd() << " disconnected" << RESET << std::endl;
-  // remove him from all channels
   for (size_t i = 0; i < channels.size(); i++) {
+    // remove invitations
+    int inviteIndex = channels[i].getInviteIndex(clt->getFd());
+    if (inviteIndex != NOT_VALID)
+      channels[i].removeFromInvitedFds(inviteIndex);
+    // remove client from the channel
     int uIndex = channels[i].getUserIndex(clt->getNickname());
     if (uIndex != NOT_VALID) {
       channels[i].remove_user(uIndex, clt->getNickname());

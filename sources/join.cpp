@@ -34,7 +34,7 @@ void server::do_join(std::vector<std::string> &command, client *clt) {
     for (j = 0; j < channels.size(); j++) {
       if (channels[j].getName().compare(chan_list[i]) == 0) {
         // check channel modes
-        if (channels[j].c_modes[INVITE_ONLY_M])
+        if (channels[j].c_modes[INVITE_ONLY_M] && channels[j].getInviteIndex(clt->getFd()) == NOT_VALID)
           send_reply(clt->getFd(), ERR_INVITEONLYCHAN(clt->getNickname(), chan_list[i]));
         else if (channels[j].c_modes[USER_LIMIT_M] && channels[j].getSize() == channels[j].getUserLimit())
           send_reply(clt->getFd(), ERR_CHANNELISFULL(clt->getNickname(), chan_list[i]));
