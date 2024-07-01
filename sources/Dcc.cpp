@@ -1,17 +1,13 @@
 #include "Dcc.hpp"
 #include "Bot_utils.hpp"
 #include "Client.hpp"
-// #include "Server.hpp"
-
-// #include <algorithm>
-#include <iostream>
 
 Dcc::Dcc(client clt) : clt(clt) {
   this->foundCltFd = -1;
   //
 }
 
-void Dcc::setData(std::string message, std::vector<client*> clients) {
+void Dcc::setData(std::string message, std::vector<client *> clients) {
   this->cltMessage = message;
   this->clients = clients;
   this->parseMessage(); // calling the parser
