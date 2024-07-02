@@ -36,10 +36,15 @@ void server::do_join(std::vector<std::string> &command, client *clt) {
         // check channel modes
         if (channels[j].c_modes[INVITE_ONLY_M] && channels[j].getInviteIndex(clt->getFd()) == NOT_VALID)
           send_reply(clt->getFd(), ERR_INVITEONLYCHAN(clt->getNickname(), chan_list[i]));
-        else if (channels[j].c_modes[USER_LIMIT_M] && channels[j].getSize() == channels[j].getUserLimit())
+        else if (channels[j].c_modes[USER_LIMIT_M] && channels[j].getSize() >= channels[j].getUserLimit())
           send_reply(clt->getFd(), ERR_CHANNELISFULL(clt->getNickname(), chan_list[i]));
         else
+        {
           channels[j].c_join(clt, c_key);
+          int invite_idx = channels[j].getInviteIndex(clt->getFd());
+          if (invite_idx != NOT_VALID)
+            channels[j].removeFromInvitedFds(invite_idx);
+        }
         break;
       }
     }
